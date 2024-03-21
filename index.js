@@ -92,7 +92,7 @@ router.post('/getCourses', (req, res) => {
   }
 });
 /*
-git remote add origin https://github.com/anukulka/smu
+git remote add origin https://github.com/anukulka/smu.git
 git add .
 git commit -m "Initial commit"
 git branch -M main
