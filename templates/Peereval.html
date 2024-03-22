@@ -18,6 +18,7 @@
     const classid = url.searchParams.get('classid');
     var selectedPeerID = -1
     var selectedAssignmentID = -1
+    var thisStudentID = -1
     var fieldValues = {
       field1: 0,
       field2: 0,
@@ -50,11 +51,18 @@
       selectedPeerID = e.target.value
     }
 
-    function onSave() {
-      // post fieldValues to backend and save to db
-      console.log("Reviewing ID: " + selectedPeerID)
-      console.log("Selected Assignment ID: " + selectedAssignmentID)
-      console.log(fieldValues)
+    function onSave(e) {
+      fetch('/dashboard/submitEval', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ studentid: thisStudentID, selectedPeerID: selectedPeerID, selectedAssignmentID: selectedAssignmentID, ratings: fieldValues })
+      })
+        .catch(error => {
+          console.error('Error fetching courses:', error);
+        });
+      window.location = '/dashboard/student'
     }
 
     fetch('/isAuthorized').then(res => res.json()).then(data => {
@@ -63,15 +71,18 @@
       }
     });
 
+    fetch('/getCurStudent').then(res => res.json()).then(data => {
+      thisStudentID = data.record.studentid
+      fetchGroup(data.record.studentid, classid);
+      fetchAssignments(classid)
+    });
+
   </script>
 </head>
 
 <body>
   <script>
-    fetch('/getCurStudent').then(res => res.json()).then(data => {
-      fetchGroup(data.record.studentid, classid);
-      fetchAssignments(classid)
-    });
+
 
     function fetchGroup(studentid, classid) {
       fetch('/getGroup', {
@@ -91,7 +102,7 @@
           }
           var newElement = document.createElement('option');
           newElement.className = "dropdown-item grade-option";
-          newElement.value = element.studentid; 
+          newElement.value = element.studentid;
           newElement.textContent = element.firstname + " " + element.lastname;
           container.appendChild(newElement);
         });
@@ -102,15 +113,41 @@
         });
     }
 
-    function fetchAssignments(classid){
-        // create another select similar to the one on this page wiht id='group-members'. Give it a different ID
-        // create query in db connect to get all assignments for a given classid
-        // create post endpoint similar to /getGroups that calls that query
-        // similar to function above, send request to the new endpoint with classid in the body: field
-        // Change container variable to select the new select element you created with its id
-        // change newelement.value to element.assignmentid
-        // change newelement.textcontent to assignment name/id number
-        // instead of selectedPeerID use selectedAssignmentID
+    function fetchAssignments(classid) {
+      fetch('/getAssignments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ classid: classid })
+      }).then(res => res.json()).then(data => {
+        const assignments = data.assignments
+        console.log(assignments)
+        const container = document.getElementById("assignments");
+        container.addEventListener('change', onGroupMemberChange)
+        assignments.map((element, index) => {
+          if (index === 0) {
+            selectedAssignmentID = element.assignmentid
+          }
+          var newElement = document.createElement('option');
+          newElement.className = "dropdown-item grade-option";
+          newElement.value = element.assignmentid;
+          newElement.textContent = element.assignmentid;
+          container.appendChild(newElement);
+        });
+
+      })
+        .catch(error => {
+          console.error('Error fetching courses:', error);
+        });
+
+
+
+      // similar to function above, send request to the new endpoint with classid in the body: field
+      // Change container variable to select the new select element you created with its id
+      // change newelement.value to element.assignmentid
+      // change newelement.textcontent to assignment name/id number
+      // instead of selectedPeerID use selectedAssignmentID
     }
 
   </script>
@@ -134,25 +171,31 @@
   </nav>
   <section class="py-5 mt-5"></section>
   <h1 style="text-align: center;"><strong>Evaluate a Peer</strong></h1>
-  
-  <div class="row align-items-center justify-content-center">
-    <div class="col-md-2 text-right">
-      <h3>Select group members:</h3>
+  <section class="py-5">
+    <div class="container">
+      <div class="row align-items-center justify-content-center">
+        <div class="col-md-2 text-right">
+          <h3 style="font-size: 20px;">Select group members:</h3>
+        </div>
+        <div class="col-md-4">
+          <select class="btn btn-primary dropdown-toggle" id="group-members" aria-expanded="false"
+            data-bs-toggle="dropdown" style="text-align: center;">
+
+          </select>
+        </div>
+        <!------------------------------------------------------------------------------------------->
+        <div class="col-md-2 text-right">
+          <h3 style="font-size: 20px;">Select Assignment:</h3>
+        </div>
+        <div class="col-md-4">
+          <select class="btn btn-primary dropdown-toggle" id="assignments" aria-expanded="false"
+            data-bs-toggle="dropdown" style="text-align: center;">
+
+          </select>
+        </div>
+      </div>
     </div>
-    <div class="col-md-4">
-      <select class="btn btn-primary dropdown-toggle" id="group-members" aria-expanded="false" data-bs-toggle="dropdown" style="text-align: center;">
-      
-      </select>
-    </div>
-  </div>
-
-
-
-  <!-- <div class="dropdown-container">
-    <select class="btn btn-primary dropdown-toggle" id="group-members" aria-expanded="false" data-bs-toggle="dropdown"
-      style="text-align: center;">
-    </select>
-  </div> -->
+  </section>
   <section class="py-5">
     <div class="container">
       <div class="table-responsive">
@@ -183,7 +226,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="disciplineknowledge" value="">
+                <input type="hidden" name="disciplineknowledge" value="multidisciplinaryknowledge">
               </td>
             </tr>
             <tr>
@@ -201,7 +244,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="applyknowledge" value="">
+                <input type="hidden" name="applyknowledge" value="multidisciplinaryknowledge">
               </td>
             </tr>
             <tr>
@@ -218,7 +261,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="reasoninglogic" value="">
+                <input type="hidden" name="reasoninglogic" value="intellectualandknowledge">
               </td>
             </tr>
             <tr>
@@ -235,7 +278,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="problemsolving" value="">
+                <input type="hidden" name="problemsolving" value="intellectualandknowledge">
               </td>
             </tr>
             <tr>
@@ -252,7 +295,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="criticalthinking" value="">
+                <input type="hidden" name="criticalthinking" value="intellectualandknowledge">
               </td>
             </tr>
             <tr>
@@ -269,7 +312,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="identifyingoppurtunity" value="">
+                <input type="hidden" name="identifyingoppurtunity" value="intellectualandknowledge">
               </td>
             </tr>
             <tr>
@@ -286,7 +329,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="emotionalintelligence" value="">
+                <input type="hidden" name="emotionalintelligence" value="interpersonalskills">
               </td>
             </tr>
             <tr>
@@ -303,7 +346,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="collaboration" value="">
+                <input type="hidden" name="collaboration" value="interpersonalskills">
               </td>
             </tr>
             <tr>
@@ -321,7 +364,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="leadership" value="">
+                <input type="hidden" name="leadership" value="interpersonalskills">
               </td>
             </tr>
             <tr>
@@ -338,7 +381,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="communication" value="">
+                <input type="hidden" name="communication" value="interpersonalskills">
               </td>
             </tr>
             <tr>
@@ -355,7 +398,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="openness" value="">
+                <input type="hidden" name="openness" value="globalcitizenship">
               </td>
             </tr>
             <tr>
@@ -372,7 +415,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="diversityappreciation" value="">
+                <input type="hidden" name="diversityappreciation" value="globalcitizenship">
               </td>
             </tr>
             <tr>
@@ -389,7 +432,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="asiaissues" value="">
+                <input type="hidden" name="asiaissues" value="globalcitizenship">
               </td>
             </tr>
             <tr>
@@ -406,7 +449,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="ethics" value="">
+                <input type="hidden" name="ethics" value="globalcitizenship">
               </td>
             </tr>
             <tr>
@@ -423,7 +466,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="senseofresponsibility" value="">
+                <input type="hidden" name="senseofresponsibility" value="globalcitizenship">
               </td>
             </tr>
             <tr>
@@ -440,7 +483,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="addresssocialconcern" value="">
+                <input type="hidden" name="addresssocialconcern" value="globalcitizenship">
               </td>
             </tr>
             <tr>
@@ -457,7 +500,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="personalgrowth" value="">
+                <input type="hidden" name="personalgrowth" value="personalmastery">
               </td>
             </tr>
             <tr>
@@ -474,7 +517,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="selfreflection" value="">
+                <input type="hidden" name="selfreflection" value="personalmastery">
               </td>
             </tr>
             <tr>
@@ -491,7 +534,7 @@
                     <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
                   </select>
                 </div>
-                <input type="hidden" name="resilience" value="">
+                <input type="hidden" name="resilience" value="personalmastery">
               </td>
             </tr>
           </tbody>

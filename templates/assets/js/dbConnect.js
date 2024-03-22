@@ -99,6 +99,7 @@ module.exports = {
                 });
         });
     },
+    
     getGroup: function (studentid, classid) {
         return new Promise((resolve, reject) => {
             pool.query(`SELECT *
@@ -119,13 +120,53 @@ module.exports = {
                     reject(err);
                 });
         });
-    }
-    // getStudentPeerEvaluationGrades: function(studentid){
-    //     //retreive grades and put them into the proper db columns
-    //     //average the overall grade, and put that into the overall column
-    //     //average the section grades, and put that into the graduatelearningoutcome columns(might need to give each metric a category value)
-    // }
+    },
+    getAssignments: function (classid) {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT * FROM assignment WHERE classid = '${classid}';`)
+                .then(res => {
+                    resolve(res.rows);
+                })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        });
+        //retreive grades and put them into the proper db columns
+        //average the overall grade, and put that into the overall column
+        //average the section grades, and put that into the graduatelearningoutcome columns(might need to give each metric a category value)
+    },
 
+    addEval: function (studentid, assignmentid, receivingstudentid, overall, otherfields)  {
+        var date = new Date()
+        return new Promise((resolve, reject) => {
+            pool.query(`INSERT INTO PeerEvaluation (AssignmentID, StudentID, ReceivingStudentID, DateCompleted, DisciplineKnowledge, ApplyKnowledge, ReasoningAndLogic, ProblemSolving, CriticalThinking, IdentifyOpportunity, EmotionalIntelligence, Collaboration, Leadership, Communication, Openness, DiversityAppreciation, asiaissues, Ethics, SenseOfResponsibility, AddressSocialConcern, PersonalGrowth, SelfReflection, Resilience, Overall) 
+            VALUES (${assignmentid}, ${studentid}, ${receivingstudentid}, to_date('${date.toISOString()}', 'YYYY-MM-DD'), ${otherfields.field1}, ${otherfields.field2}, ${otherfields.field3}, ${otherfields.field4}, ${otherfields.field5}, ${otherfields.field6}, ${otherfields.field7}, ${otherfields.field8}, ${otherfields.field9}, ${otherfields.field10}, ${otherfields.field11}, ${otherfields.field12}, ${otherfields.field13}, ${otherfields.field14}, ${otherfields.field15}, ${otherfields.field16}, ${otherfields.field17}, ${otherfields.field18}, ${otherfields.field19}, ${overall})
+            RETURNING peerevaluationid;
+            `).then(res => {
+                    resolve(res.rows[0].peerevaluationid);
+                })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        }) //(DEFAULT, 1, 701234568, 701561205, NOW()::date, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4)
+        
+    },
+
+    addGlo: function (peerevaluationid, categoryAvg)  {
+        return new Promise((resolve, reject) => {
+            pool.query(`INSERT INTO graduatelearningoutcomes (peerevaluationid, multidisciplinaryknowledge, intellectualandcreative, interpersonalskills, globalcitizenship, personalmastery) 
+            VALUES (${peerevaluationid}, ${categoryAvg["multidisciplinaryknowledge"]}, ${categoryAvg["intellectualandknowledge"]}, ${categoryAvg["interpersonalskills"]}, ${categoryAvg["globalcitizenship"]}, ${categoryAvg["personalmastery"]});
+            `).then(res => {
+                    resolve(true);
+                })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        })
+    },
     // findUserByEmail: function(email){
 
     // }

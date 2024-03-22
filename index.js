@@ -81,6 +81,12 @@ router.post('/getGroup', (req, res) => {
   })
 })
 
+router.post('/getAssignments', (req, res) => {
+  db.getAssignments(req.body.classid).then(result => {
+    res.json({ assignments: result })
+  })
+})
+
 router.post('/getCourses', (req, res) => {
   if (req.body.type === 'student') {
     db.getCoursesByStudentId(req.body.studentid).then(courses => {
@@ -102,6 +108,63 @@ router.post('/getCourses', (req, res) => {
   }
 });
 
+
+router.post('/dashboard/submitEval', (req, res) => {
+  var studentID = req.body.studentid
+  var peerStudentID = req.body.selectedPeerID
+  var assignmentID = req.body.selectedAssignmentID
+  var ratings = req.body.ratings
+
+  var categoryMap = {
+    field1: "multidisciplinaryknowledge",
+    field2: "multidisciplinaryknowledge",
+    field3: "intellectualandknowledge",
+    field4: "intellectualandknowledge",
+    field5: "intellectualandknowledge",
+    field6: "intellectualandknowledge",
+    field7: "interpersonalskills",
+    field8: "interpersonalskills",
+    field9: "interpersonalskills",
+    field10: "interpersonalskills",
+    field11: "globalcitizenship",
+    field12: "globalcitizenship",
+    field13: "globalcitizenship",
+    field14: "globalcitizenship",
+    field15: "globalcitizenship",
+    field16: "globalcitizenship",
+    field17: "personalmastery",
+    field18: "personalmastery",
+    field19: "personalmastery",
+  }
+
+  var categoryAvg = {
+    "multidisciplinaryknowledge" : 0,
+    "intellectualandknowledge" : 0,
+    "interpersonalskills" : 0,
+    "globalcitizenship" : 0,
+    "personalmastery" : 0,
+  }
+
+  var overallSum = 0
+  Object.entries(ratings).forEach(([key, value]) => {
+    overallSum += value
+    let category = categoryMap[key]
+    categoryAvg[category] += value
+  });
+
+  var overallAvg =  Number(Math.round((overallSum/(Object.entries(ratings).length)) * 10) / 10).toFixed(2)   
+  categoryAvg["multidisciplinaryknowledge"] = Number(Math.round((categoryAvg["multidisciplinaryknowledge"]/2) * 10) / 10).toFixed(2)
+  categoryAvg["intellectualandknowledge"] = Number(Math.round((categoryAvg["intellectualandknowledge"]/4) * 10) / 10).toFixed(2)   
+  categoryAvg["interpersonalskills"] = Number(Math.round((categoryAvg["interpersonalskills"]/4) * 10) / 10).toFixed(2)   
+  categoryAvg["globalcitizenship"] = Number(Math.round((categoryAvg["globalcitizenship"]/6) * 10) / 10).toFixed(2)   
+  categoryAvg["personalmastery"] = Number(Math.round((categoryAvg["personalmastery"]/3) * 10) / 10).toFixed(2)   
+
+  db.addEval(studentID, assignmentID, peerStudentID, overallAvg, ratings).then(newRecordID => {
+      db.addGlo(newRecordID, categoryAvg).then(done => {
+       //res.redirect('/dashboard/student')
+       })
+  })
+})
 
 
 router.get('/isAuthorized', (req, res) => {
