@@ -30,6 +30,10 @@ router.get('/dashboard/professor', (req, res) => {
   res.sendFile(path.join(__dirname, 'templates', 'Professor Dashboard.html'));
 })
 
+router.get('/dashboard/peerEval', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'Peereval.html'));
+})
+
 router.post('/validateLogin', (req, res) => {
   if (req.body.type === 'student') {
     var test = db.validateStudent(req.body.email, req.body.password).then(isValid => {
@@ -71,6 +75,12 @@ router.get('/getAllStudents', (req, res) => {
   res.send(String(db.selectAllStudents()))
 })
 
+router.post('/getGroup', (req, res) => {
+  db.getGroup(req.body.studentid, req.body.classid).then(result => {
+    res.json({ group: result })
+  })
+})
+
 router.post('/getCourses', (req, res) => {
   if (req.body.type === 'student') {
     db.getCoursesByStudentId(req.body.studentid).then(courses => {
@@ -91,7 +101,6 @@ router.post('/getCourses', (req, res) => {
       });
   }
 });
-
 
 
 

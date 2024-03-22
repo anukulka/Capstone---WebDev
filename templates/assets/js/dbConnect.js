@@ -99,12 +99,32 @@ module.exports = {
                 });
         });
     },
-
-    getStudentPeerEvaluationGrades: function(studentid){
-        //retreive grades and put them into the proper db columns
-        //average the overall grade, and put that into the overall column
-        //average the section grades, and put that into the graduatelearningoutcome columns(might need to give each metric a category value)
+    getGroup: function (studentid, classid) {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT *
+                        FROM student
+                        WHERE studentid IN (
+                            SELECT studentid
+                            FROM student_class
+                            WHERE studentgroup = (
+                                SELECT studentgroup
+                                FROM student_class
+                                WHERE studentid = '${studentid}' AND classid = '${classid}'
+                            ) AND classid = '${classid}');`)
+                .then(res => {
+                    resolve(res.rows);
+                })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        });
     }
+    // getStudentPeerEvaluationGrades: function(studentid){
+    //     //retreive grades and put them into the proper db columns
+    //     //average the overall grade, and put that into the overall column
+    //     //average the section grades, and put that into the graduatelearningoutcome columns(might need to give each metric a category value)
+    // }
 
     // findUserByEmail: function(email){
 

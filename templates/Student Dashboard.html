@@ -35,7 +35,6 @@
     });
 
     function fetchCourses(studentid) {
-      console.log("HERE: ", studentid)
       fetch('/getCourses', {
         method: 'POST',
         headers: {
@@ -55,7 +54,7 @@
         <div class="col-md-3" style="text-align: center;"><a class="btn btn-primary btn-lg me-2" role="button" href="#"
             style="text-align: center;margin-top: 18px; font-size: 18.5px;">My Evaluations</a></div>
         <div class="col-md-3" style="text-align: center;">
-        <a class="btn btn-primary btn-lg me-2" role="button" href="#" style="text-align: center;margin-top: 18px; font-size: 18.5px;">
+        <a class="btn btn-primary btn-lg me-2" role="button" href="/dashboard/peerEval?classid=${element.classid}" style="text-align: center;margin-top: 18px; font-size: 18.5px;">
         <span style="color: var(--bs-btn-hover-color); background-color: var(--bs-btn-hover-bg);">Evaluate a Peer</span>&nbsp;
         </a>
         </div>
@@ -72,7 +71,7 @@
         </div>
         <div class="col-md-3" style="text-align: center;"><a class="btn btn-light btn-lg" role="button" href="#"
             style="text-align: center;height: 52.1875px;margin-top: 18px;">My Evaluations</a></div>
-        <div class="col-md-3" style="text-align: center;"><a class="btn btn-light btn-lg" role="button" href="#"
+        <div class="col-md-3" style="text-align: center;"><a class="btn btn-light btn-lg" role="button" href="/dashboard/peerEval?classid=${element.classid}"
             style="text-align: center;height: 52.1875px;margin-top: 18px;font-size: 18.5px;">Evaluate a Peer</a></div>
         <div class="col-md-3" style="text-align: center;"><a class="btn btn-light btn-lg" role="button" href="#"
             style="height: 52.1875px;margin-top: 18px; font-size: 18.5px;">View Groups</a></div>`

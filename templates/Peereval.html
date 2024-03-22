@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
   <title>Peer Evaluation</title>
-  <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css?family=Raleway:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800&amp;display=swap">
   <link rel="stylesheet" href="assets/css/styles.min.css">
@@ -13,13 +13,111 @@
     href="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/css/theme.bootstrap_4.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+    const url = new URL(window.location.href);
+    const classid = url.searchParams.get('classid');
+    var selectedPeerID = -1
+    var selectedAssignmentID = -1
+    var fieldValues = {
+      field1: 0,
+      field2: 0,
+      field3: 0,
+      field4: 0,
+      field5: 0,
+      field6: 0,
+      field7: 0,
+      field8: 0,
+      field9: 0,
+      field10: 0,
+      field11: 0,
+      field12: 0,
+      field13: 0,
+      field14: 0,
+      field15: 0,
+      field16: 0,
+      field17: 0,
+      field18: 0,
+      field19: 0,
+    }
+
+    function onDropdownChange(e) {
+      let newValue = e.target.value
+      let fieldName = e.target.id
+      fieldValues[fieldName] = parseInt(newValue)
+    }
+
+    function onGroupMemberChange(e) {
+      selectedPeerID = e.target.value
+    }
+
+    function onSave() {
+      // post fieldValues to backend and save to db
+      console.log("Reviewing ID: " + selectedPeerID)
+      console.log("Selected Assignment ID: " + selectedAssignmentID)
+      console.log(fieldValues)
+    }
+
+    fetch('/isAuthorized').then(res => res.json()).then(data => {
+      if (!data.authorized) {
+        window.location = '/'
+      }
+    });
+
+  </script>
 </head>
 
 <body>
+  <script>
+    fetch('/getCurStudent').then(res => res.json()).then(data => {
+      fetchGroup(data.record.studentid, classid);
+      fetchAssignments(classid)
+    });
+
+    function fetchGroup(studentid, classid) {
+      fetch('/getGroup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ studentid: studentid, classid: classid })
+      }).then(res => res.json()).then(data => {
+        const group = data.group
+        console.log(group)
+        const container = document.getElementById("group-members");
+        container.addEventListener('change', onGroupMemberChange)
+        group.map((element, index) => {
+          if (index === 0) {
+            selectedPeerID = element.studentid
+          }
+          var newElement = document.createElement('option');
+          newElement.className = "dropdown-item grade-option";
+          newElement.value = element.studentid; 
+          newElement.textContent = element.firstname + " " + element.lastname;
+          container.appendChild(newElement);
+        });
+
+      })
+        .catch(error => {
+          console.error('Error fetching courses:', error);
+        });
+    }
+
+    function fetchAssignments(classid){
+        // create another select similar to the one on this page wiht id='group-members'. Give it a different ID
+        // create query in db connect to get all assignments for a given classid
+        // create post endpoint similar to /getGroups that calls that query
+        // similar to function above, send request to the new endpoint with classid in the body: field
+        // Change container variable to select the new select element you created with its id
+        // change newelement.value to element.assignmentid
+        // change newelement.textcontent to assignment name/id number
+        // instead of selectedPeerID use selectedAssignmentID
+    }
+
+  </script>
   <nav class="navbar navbar-expand-md fixed-top navbar-shrink py-3 navbar-light" id="mainNav"
     style="--bs-primary: #10145d;--bs-primary-rgb: 16,20,93;">
     <div class="container"><a class="navbar-brand d-flex align-items-center" href="/"><span><img
-            src="assets/img/clipboard-image-1.png" style="height: 100px;"></span></a><button data-bs-toggle="collapse"
+            src="/assets/img/clipboard-image-1.png" style="height: 100px;"></span></a><button data-bs-toggle="collapse"
         class="navbar-toggler" data-bs-target="#navcol-1"><span class="visually-hidden">Toggle navigation</span><span
           class="navbar-toggler-icon"></span></button>
       <div class="collapse navbar-collapse" id="navcol-1">
@@ -28,14 +126,19 @@
           <li class="nav-item"></li>
           <li class="nav-item"></li>
         </ul>
-        <ul class="navbar-nav mx-auto"></ul><a class="btn btn-primary shadow" role="button" href="Student Dashboard.html"
+        <ul class="navbar-nav mx-auto"></ul><a class="btn btn-primary shadow" role="button" href="/dashboard/student"
           style="background: var(--bs-yellow);color: var(--bs-navbar-active-color);">Dashboard</a><a
-          class="btn btn-primary shadow" role="button" href="login.html">Sign out</a>
+          class="btn btn-primary shadow" role="button" href="/signout">Sign out</a>
       </div>
     </div>
   </nav>
   <section class="py-5 mt-5"></section>
   <h1 style="text-align: center;"><strong>Evaluate a Peer</strong></h1>
+  <div class="dropdown-container">
+    <select class="btn btn-primary dropdown-toggle" id="group-members" aria-expanded="false" data-bs-toggle="dropdown"
+      style="text-align: center;">
+    </select>
+  </div>
   <section class="py-5">
     <div class="container">
       <div class="table-responsive">
@@ -57,15 +160,14 @@
                 life-ready disciplinary knowledge and expertise</td>
               <td style="margin-left: 124px;padding-left: 0px;text-align: center;">
                 <div class="dropdown" style="font-size: 12px;">
-                  <button class="btn btn-primary dropdown-toggle" id="dropdownMenuButton" aria-expanded="false"
-                    data-bs-toggle="dropdown" type="button" style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                  <select class="btn btn-primary dropdown-toggle" id="field1" aria-expanded="false"
+                    data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="disciplineknowledge" value="">
               </td>
@@ -76,16 +178,14 @@
                 and apply knowledge, within and across disciplines, in identifying and addressing real world problems
               </td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field2" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="applyknowledge" value="">
               </td>
@@ -95,16 +195,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Demonstrate versatile and holistic
                 use of reasoning, logic and evidence to evaluate information and make judgements&nbsp;</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field3" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="reasoninglogic" value="">
               </td>
@@ -114,16 +212,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Demonstrate ability to solve
                 problems with high levels of complexity and uncertainty&nbsp;</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field4" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="problemsolving" value="">
               </td>
@@ -133,16 +229,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Demonstrate flexibility and
                 out-of-the-box thinking when generating ideas</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field5" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="criticalthinking" value="">
               </td>
@@ -152,16 +246,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Demonstrate the ability and
                 willingness to identify opportunities and to enact solutions as appropriate&nbsp;</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field6" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="identifyingoppurtunity" value="">
               </td>
@@ -171,16 +263,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Demonstrate empathy, emotional and
                 situational intelligence in persuasion, negotiation and conflict resolution</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field7" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="emotionalintelligence" value="">
               </td>
@@ -190,16 +280,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Collaborate effectively in
                 different settings in the pursuit of shared goals</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field8" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="collaboration" value="">
               </td>
@@ -210,16 +298,14 @@
                 follow and when to lead and to understand how to optimize the distribution of talent in any given
                 situation</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field9" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="leadership" value="">
               </td>
@@ -229,16 +315,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Communicate effectively in relevant
                 genres and using appropriate modalities for different contexts</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field10" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="communication" value="">
               </td>
@@ -248,16 +332,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Demonstrate openness to different
                 cultures</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field11" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="openness" value="">
               </td>
@@ -267,16 +349,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Appreciate and value the diversity
                 of different social and cultural contexts</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field12" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="diversityappreciation" value="">
               </td>
@@ -286,16 +366,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Be attuned to the specific issues
                 and developments that pertain to Asia</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field13" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="asiaissues" value="">
               </td>
@@ -305,16 +383,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Identify and be able to frame
                 conflicting ethical values in personal, professional and societal settings</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field14" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="ethics" value="">
               </td>
@@ -324,16 +400,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Demonstrate a sense of
                 responsibility for the broader impact of individual and collective actions</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field15" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="senseofresponsibility" value="">
               </td>
@@ -343,16 +417,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Contribute positively to local and
                 global communities by addressing social concerns&nbsp;</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field16" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="addresssocialconcern" value="">
               </td>
@@ -362,16 +434,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Demonstrate commitment to personal
                 growth and development, and lifelong learning</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field17" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="personalgrowth" value="">
               </td>
@@ -381,16 +451,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Demonstrate an ability to be
                 self-reflective about and improve on one's learning processes</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field18" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="selfreflection" value="">
               </td>
@@ -400,16 +468,14 @@
               <td style="text-align: left;padding-left: 109px;padding-right: 141px;">Demonstrate ability to persevere
                 and to recover quickly in the face of disruptions and challenges&nbsp;</td>
               <td>
-                <div class="dropdown" style="font-size: 12px;"><button class="btn btn-primary dropdown-toggle"
-                    aria-expanded="false" data-bs-toggle="dropdown" type="button"
-                    style="font-size: 14px;">Grade</button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item grade-option" href="#" data-value="0">0</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="1">1</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="2">2</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="3">3</a>
-                    <a class="dropdown-item grade-option" href="#" data-value="4">4</a>
-                  </div>
+                <div class="dropdown" style="font-size: 12px;"><select class="btn btn-primary dropdown-toggle"
+                    id="field19" aria-expanded="false" data-bs-toggle="dropdown">
+                    <option class="dropdown-item grade-option" href="#" data-value="0">0</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="1">1</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="2">2</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="3">3</option>
+                    <option class="dropdown-item grade-option" href="#" data-value="4">4</option>
+                  </select>
                 </div>
                 <input type="hidden" name="resilience" value="">
               </td>
@@ -475,43 +541,51 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/script.min.js"></script>
   <script>
-    $(document).ready(function () {
-      $('#submit-button').prop('disabled', true);
+    document.getElementById("submit-button").addEventListener('click', onSave)
 
-      // Function to check if all dropdowns have a selected grade
-      function checkDropdowns() {
-        let allSelected = true;
-        $('input[type="hidden"]').each(function () {
-          if ($(this).val() === '') {
-            allSelected = false;
-            return false; // Break the loop
-          }
-        });
-        $('#submit-button').prop('disabled', !allSelected);
+    Object.entries(fieldValues).forEach(([key, value]) => {
+      let option = document.getElementById(key);
+      if (option) {
+        option.addEventListener("change", onDropdownChange);
       }
-
-      // Event handler for when a grade option is clicked
-      $('.grade-option').click(function (e) {
-        e.preventDefault();
-        var selectedGrade = $(this).text();
-        var selectedValue = $(this).data('value');
-
-        // Update the dropdown button text
-        $(this).closest('.dropdown').find('.dropdown-toggle').text(selectedGrade);
-
-        // Update the hidden input with the selected value
-        $(this).closest('td').find('input[type="hidden"]').val(selectedValue);
-
-        // Check the state of dropdowns after each selection
-        checkDropdowns();
-      });
-
-      // Event handler for the submit button
-      $('#submit-button').click(function () {
-        // Perform the database update operation here
-        // This could involve an AJAX request or form submission
-      });
     });
+    // $(document).ready(function () {
+    //   $('#submit-button').prop('disabled', true);
+
+    //   // Function to check if all dropdowns have a selected grade
+    //   function checkDropdowns() {
+    //     let allSelected = true;
+    //     $('input[type="hidden"]').each(function () {
+    //       if ($(this).val() === '') {
+    //         allSelected = false;
+    //         return false; // Break the loop
+    //       }
+    //     });
+    //     $('#submit-button').prop('disabled', !allSelected);
+    //   }
+
+    //   // Event handler for when a grade option is clicked
+    //   $('.grade-option').click(function (e) {
+    //     e.preventDefault();
+    //     var selectedGrade = $(this).text();
+    //     var selectedValue = $(this).data('value');
+
+    //     // Update the dropdown button text
+    //     $(this).closest('.dropdown').find('.dropdown-toggle').text(selectedGrade);
+
+    //     // Update the hidden input with the selected value
+    //     $(this).closest('td').find('input[type="hidden"]').val(selectedValue);
+
+    //     // Check the state of dropdowns after each selection
+    //     checkDropdowns();
+    //   });
+
+    //   // Event handler for the submit button
+    //   $('#submit-button').click(function () {
+    //     // Perform the database update operation here
+    //     // This could involve an AJAX request or form submission
+    //   });
+    // });
   </script>
 </body>
 
