@@ -100,7 +100,11 @@ module.exports = {
         });
     },
 
-
+    getStudentPeerEvaluationGrades: function(studentid){
+        //retreive grades and put them into the proper db columns
+        //average the overall grade, and put that into the overall column
+        //average the section grades, and put that into the graduatelearningoutcome columns(might need to give each metric a category value)
+    }
 
     // findUserByEmail: function(email){
 

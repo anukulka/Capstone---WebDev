@@ -91,12 +91,10 @@ router.post('/getCourses', (req, res) => {
       });
   }
 });
-/*
-git remote add origin https://github.com/anukulka/smu.git
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git push -u origin main*/
+
+
+
+
 router.get('/isAuthorized', (req, res) => {
   res.json({ authorized: req.session.isAuthorized ? req.session.isAuthorized : false })
 })
@@ -105,11 +103,13 @@ router.get('/signout', (req, res) => {
   req.session.destroy()
   res.redirect('/')
 })
-/*----------------------------------------------------------------------------------------*/
+
 
 router.get('/forgotten-password', (req, res) => {
   res.sendFile(path.join(__dirname, 'templates', 'forgotten-password.html'));
 });
+
+/*----------------------------------------------------------------------------------------
 
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
@@ -161,7 +161,7 @@ router.post('/forgot-password', async (req, res) => {
 
 
 
-
+*/
 
 
 
