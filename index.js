@@ -22,16 +22,31 @@ router.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'templates', 'login.html'));
 })
 
+// -------------- STUDENT DASHBOARD -------------------------
 router.get('/dashboard/student', (req, res) => {
   res.sendFile(path.join(__dirname, 'templates', 'Student Dashboard.html'));
 })
+
+router.get('/dashboard/student/peerEval', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'Peereval.html'));
+})
+
+// -------------- PROFESSOR DASHBOARD -------------------------
 
 router.get('/dashboard/professor', (req, res) => {
   res.sendFile(path.join(__dirname, 'templates', 'Professor Dashboard.html'));
 })
 
-router.get('/dashboard/peerEval', (req, res) => {
-  res.sendFile(path.join(__dirname, 'templates', 'Peereval.html'));
+router.get('/dashboard/professor/schedule', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'Schedule.html'));
+})
+
+router.get('/dashboard/professor/view', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'Professor Dashboard.html'));
+})
+
+router.get('/dashboard/professor/insights', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'Professor Dashboard.html'));
 })
 
 router.post('/validateLogin', (req, res) => {
@@ -59,6 +74,13 @@ router.post('/validateLogin', (req, res) => {
   }
 })
 
+router.post('/addAssignment', (req, res) => {
+  console.log(req.body)
+  db.addAssignment(req.body.classid, req.body.semester, req.body.section, req.body.dateopen, req.body.dateclose).then(result => {
+
+  })
+})
+
 router.get('/getCurStudent', (req, res) => {
   db.findStudentByEmail(req.session.email).then(result => {
     res.json({ record: result })
@@ -78,6 +100,12 @@ router.get('/getAllStudents', (req, res) => {
 router.post('/getGroup', (req, res) => {
   db.getGroup(req.body.studentid, req.body.classid).then(result => {
     res.json({ group: result })
+  })
+})
+
+router.post('/getSections', (req, res) => {
+  db.getSectionsByClassID(req.body.classid, req.body.professorid).then(result => {
+    res.json({ sections: result })
   })
 })
 

@@ -49,18 +49,32 @@ password: EePeng1234 -->
           var newElement = document.createElement('div')
           newElement.className = "row"
           if (index % 2 == 1) {
-            newElement.innerHTML = `<div class="col-md-6">
-          <p class="text-muted my-4" style="width: 186px;font-size: 22px;text-align: center;">${element.nameofclass}</p>
+            newElement.innerHTML = `<div class="col-md-3">
+          <p class="text-muted my-4 course-name" style="width: 186px;font-size: 22px;text-align: center;">${element.nameofclass}</p>
         </div>
-        <div class="col-md-6"><a class="btn btn-primary btn-lg me-2" role="button" href="#"
-            style="text-align: center;margin-top: 18px;">Reports</a></div>`
+        <div class="col-md-3" style="text-align: center;"><a class="btn btn-primary btn-lg me-2" role="button" href="/dashboard/professor/schedule?classid=${element.classid}"
+            style="text-align: center;margin-top: 18px; font-size: 18.5px; font-size: 18.5px;">Schedule Eval</a></div>
+        <div class="col-md-3" style="text-align: center;">
+        <a class="btn btn-primary btn-lg me-2" role="button" href="#" style="text-align: center;margin-top: 18px; font-size: 18.5px;">
+        <span style="color: var(--bs-btn-hover-color); background-color: var(--bs-btn-hover-bg);">View Evals</span>&nbsp;
+        </a>
+        </div>
+        <div class="col-md-3" style="text-align: center;"><a class="btn btn-primary btn-lg me-2" role="button" href="#"
+            style="margin-top: 18px;font-size: 18.5px;"><span
+              style="color: var(--bs-btn-hover-color); background-color: var(--bs-btn-hover-bg);">Get Insights</span></a>
+        </div>`
           }
           else {
-            newElement.innerHTML = ` <div class="col-md-6">
-          <p class="text-muted my-4" style="width: 186px;font-size: 22px;text-align: center;">${element.nameofclass}</p>
+            newElement.innerHTML = `<div class="col-md-3">
+          <p class="text-muted my-4 course-name" id="course1" style="width: 186px;font-size: 22px;text-align: center;">
+            ${element.nameofclass}</p>
         </div>
-        <div class="col-md-6"><a class="btn btn-light btn-lg" role="button" href="#"
-            style="text-align: center;height: 52.1875px;margin-top: 18px;">Reports</a></div>`
+        <div class="col-md-3" style="text-align: center;"><a class="btn btn-light btn-lg" role="button" href="/dashboard/professor/schedule?classid=${element.classid}"
+            style="text-align: center;height: 52.1875px;margin-top: 18px; font-size: 18.5px;">Schedule Eval</a></div>
+        <div class="col-md-3" style="text-align: center;"><a class="btn btn-light btn-lg" role="button" href="#"
+            style="text-align: center;height: 52.1875px;margin-top: 18px;font-size: 18.5px;">View Evals</a></div>
+        <div class="col-md-3" style="text-align: center;"><a class="btn btn-light btn-lg" role="button" href="#"
+            style="height: 52.1875px;margin-top: 18px; font-size: 18.5px;">Get Insights</a></div>`
           }
 
           container.appendChild(newElement)
@@ -84,7 +98,7 @@ password: EePeng1234 -->
           <li class="nav-item"></li>
           <li class="nav-item"></li>
         </ul>
-        <ul class="navbar-nav mx-auto"></ul><a class="btn btn-primary shadow" role="button" href="#"
+        <ul class="navbar-nav mx-auto"></ul><a class="btn btn-primary shadow" role="button" href="/dashboard/professor"
           style="background: var(--bs-yellow);color: var(--bs-navbar-active-color);">Dashboard</a><a
           class="btn btn-primary shadow" role="button" href="/signout">Sign Out</a>
       </div>

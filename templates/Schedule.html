@@ -2,94 +2,85 @@
 <html data-bs-theme="light" lang="en">
 
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-D86ZKRM489"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-
-    gtag('config', 'G-D86ZKRM489');
-  </script>
-
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-  <title>Student Dashboard</title>
+  <title>Schedule Peer Evaluation</title>
   <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css?family=Raleway:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800&amp;display=swap">
+  <link rel="stylesheet" href="/assets/css/styles.min.css">
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/css/theme.bootstrap_4.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
+  <script>
+    const url = new URL(window.location.href);
+    const classid = url.searchParams.get('classid');
+  </script>
 </head>
 
 <body>
   <script>
-    // Check if user is logged in:
-    fetch('/isAuthorized').then(res => res.json()).then(data => {
-      if (!data.authorized) {
-        window.location = '/'
+    var selectedCourses = []
+
+    fetch('/getCurProfessor').then(res => res.json()).then(data => {
+      getSectionList(classid, data.record.professorid);
+    });
+
+    function onCourseSelect(e) {
+      console.log(e.target.value)
+      if (!selectedCourses.includes(e.target.value)) { // Section not already selected
+        console.log("Course not selected previously")
+        document.getElementById(e.target.value).style = "margin: 0px;margin-right: 100px; background-color: #24285b;"
+        selectedCourses.push(e.target.value)
       }
-    });
+      else { // Section is currently selected
+        console.log("Course selected previously")
+        document.getElementById(e.target.value).style = "margin: 0px;margin-right: 100px; background-color: #626484;"
+        selectedCourses = selectedCourses.filter(section => section !== e.target.value)
+      }
+    }
 
-    fetch('/getCurStudent').then(res => res.json()).then(data => {
-      document.getElementById("welcome-banner").textContent = "Welcome " + data.record.firstname + "!";
-      fetchCourses(data.record.studentid);
-    });
-
-    function fetchCourses(studentid) {
-      fetch('/getCourses', {
+    function getSectionList(classid, professorid) {
+      fetch('/getSections', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ studentid: studentid, type: "student" })
+        body: JSON.stringify({ classid: classid, professorid: professorid })
       }).then(res => res.json()).then(data => {
-        const courses = data
-        const container = document.getElementById("course-list");
-        courses.map((element, index) => {
-          var newElement = document.createElement('div')
-          newElement.className = "row"
-          if (index % 2 == 1) {
-            newElement.innerHTML = `<div class="col-md-3">
-          <p class="text-muted my-4 course-name" style="width: 186px;font-size: 22px;text-align: center;">${element.nameofclass}</p>
-        </div>
-        <div class="col-md-3" style="text-align: center;"><a class="btn btn-primary btn-lg me-2" role="button" href="#"
-            style="text-align: center;margin-top: 18px; font-size: 18.5px;">My Evaluations</a></div>
-        <div class="col-md-3" style="text-align: center;">
-        <a class="btn btn-primary btn-lg me-2" role="button" href="/dashboard/student/peerEval?classid=${element.classid}" style="text-align: center;margin-top: 18px; font-size: 18.5px;">
-        <span style="color: var(--bs-btn-hover-color); background-color: var(--bs-btn-hover-bg);">Evaluate a Peer</span>&nbsp;
-        </a>
-        </div>
-        <div class="col-md-3" style="text-align: center;"><a class="btn btn-primary btn-lg me-2" role="button" href="#"
-            style="margin-top: 18px;font-size: 18.5px;"><span
-              style="color: var(--bs-btn-hover-color); background-color: var(--bs-btn-hover-bg);">View Groups</span></a>
-        </div>
-              `
-          }
-          else {
-            newElement.innerHTML = `<div class="col-md-3">
-          <p class="text-muted my-4 course-name" id="course1" style="width: 186px;font-size: 22px;text-align: center;">
-            ${element.nameofclass}</p>
-        </div>
-        <div class="col-md-3" style="text-align: center;"><a class="btn btn-light btn-lg" role="button" href="#"
-            style="text-align: center;height: 52.1875px;margin-top: 18px;">My Evaluations</a></div>
-        <div class="col-md-3" style="text-align: center;"><a class="btn btn-light btn-lg" role="button" href="/dashboard/student/peerEval?classid=${element.classid}"
-            style="text-align: center;height: 52.1875px;margin-top: 18px;font-size: 18.5px;">Evaluate a Peer</a></div>
-        <div class="col-md-3" style="text-align: center;"><a class="btn btn-light btn-lg" role="button" href="#"
-            style="height: 52.1875px;margin-top: 18px; font-size: 18.5px;">View Groups</a></div>`
-          }
-
+        const sections = data.sections
+        const container = document.getElementById("course-options");
+        sections.map((item, index) => {
+          var newElement = document.createElement('button')
+          newElement.style = "margin: 0px;margin-right: 100px;"
+          newElement.className = "btn btn-primary"
+          newElement.innerText = item.section
+          newElement.value = item.section
+          newElement.id = item.section
+          newElement.addEventListener('click', onCourseSelect)
           container.appendChild(newElement)
-        });
-
+        })
       })
-        .catch(error => {
-          console.error('Error fetching courses:', error);
-        });
     }
 
+    function onSubmit() {
+      console.log("Submitted")
+      console.log(document.getElementById("open-date").value)
+      selectedCourses.map((item, index) => {
+        fetch('/addAssignment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ classid: classid, semester: "20232", section: item, dateopen: new Date(document.getElementById("open-date").value), dateclose: new Date(document.getElementById("close-date").value)})
+        })
+      })
+      window.location = "/dashboard/professor"
+    }
 
   </script>
   <nav class="navbar navbar-expand-md fixed-top navbar-shrink py-3 navbar-light" id="mainNav"
-    style="--bs-primary: #10145d;--bs-primary-rgb: 16,20,93;height: 97.594px;">
+    style="--bs-primary: #10145d;--bs-primary-rgb: 16,20,93;">
     <div class="container"><a class="navbar-brand d-flex align-items-center" href="/"><span><img
             src="/assets/img/clipboard-image-1.png" style="height: 100px;"></span></a><button data-bs-toggle="collapse"
         class="navbar-toggler" data-bs-target="#navcol-1"><span class="visually-hidden">Toggle navigation</span><span
@@ -100,21 +91,48 @@
           <li class="nav-item"></li>
           <li class="nav-item"></li>
         </ul>
-        <ul class="navbar-nav mx-auto"></ul><a class="btn btn-primary shadow" role="button" href="#"
+        <ul class="navbar-nav mx-auto"></ul><a class="btn btn-primary shadow" role="button" href="/dashboard/professor"
           style="background: var(--bs-yellow);color: var(--bs-navbar-active-color);">Dashboard</a><a
-          class="btn btn-primary shadow" role="button" href="/signout">Sign Out</a>
+          class="btn btn-primary shadow" role="button" href="/signout">Sign out</a>
       </div>
     </div>
   </nav>
-  <section class="py-5 mt-5">
-    <div class="container py-4 py-xl-5">
-      <h1 class="display-5 fw-bold mb-4"><span class="underline" id="welcome-banner">Welcome</span></h1>
+  <section class="py-5 mt-5"></section>
+  <h1 style="text-align: center;margin: 53px;" id="class-id"> </h1>
+  <section class="py-5" style="margin: -41px;">
+    <div class="container">
+      <h3 style="text-align: center;margin: 53px;">Select Sections:</h3>
+      <div class="btn-toolbar">
+        <div class="btn-group" role="group" id="course-options">
+          
+        </div>
+      </div>
+      <div style="height: 48px;"></div>
     </div>
-    <div class="container" id="course-list"> </div>
-  </section>
-  <section class="py-5">
+    <div class="container" style="height: 111px;padding: 20px;">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="border-style: none;width: 272.906px;">Open Evaluation<br><span
+                  style="font-weight: normal !important;">(Becomes visible to students)</span></th>
+              <th style="border-style: none;text-align: left;"><input type="date" id="open-date"
+                  style="text-align: center;"></th>
+              <th style="border-style: none;width: 172.141px;">Close Evaluation<br><span
+                  style="font-weight: normal !important;">(Assigns Due Date)</span></th>
+              <th style="border-style: none;text-align: center;"><input type="date" id="close-date"
+                  style="text-align: center;"></th>
+            </tr>
+          </thead>
+          <tbody style="border-style: none;"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="height: 154px;margin: 0px;"></div>
+    <div class="container" style="text-align: center;height: 40.5938px;"><button class="btn btn-primary" type="button" id="submit-button"
+        style="text-align: center;">Submit</button></div>
     <footer></footer>
-    <div class="container py-4 py-lg-5">
+    <div class="container py-4 py-lg-5" style="text-align: left;">
       <hr>
       <div class="text-muted d-flex justify-content-between align-items-center pt-3">
         <p class="mb-0">SMU<br><br>81 Victoria St, Singapore 188065<br>+65 6828 0100</p>
@@ -154,7 +172,21 @@
       </div>
     </div>
   </section>
+  <script>
+    document.getElementById("class-id").innerHTML = `<strong>Schedule a</strong>&nbsp;<strong>New Peer
+      Evaluation</strong><br><strong>for ${classid}</strong>`
+    document.getElementById("submit-button").addEventListener('click', onSubmit)
+
+  </script>
   <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+  <script src="https://cdn.datatables.net/1.10.15/js/dataTables.bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/jquery.tablesorter.js"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/widgets/widget-filter.min.js"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/widgets/widget-storage.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/script.min.js"></script>
 </body>
 

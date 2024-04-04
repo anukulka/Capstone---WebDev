@@ -82,7 +82,11 @@
 
 <body>
   <script>
-
+    fetch('/isAuthorized').then(res => res.json()).then(data => {
+      if (!data.authorized) {
+        window.location = '/'
+      }
+    });
 
     function fetchGroup(studentid, classid) {
       fetch('/getGroup', {

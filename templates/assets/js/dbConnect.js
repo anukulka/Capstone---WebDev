@@ -2,7 +2,7 @@ const { Pool } = require('pg');
 //Database connection details
 
 const pool = new Pool({
-    user: 'postgres',
+    user: 'Stop', //Ask Jake about this?
     host: 'smuprod3.c1q46o8y6ls2.us-east-1.rds.amazonaws.com',
     database: 'postgres',
     username: 'Stop',
@@ -165,6 +165,42 @@ module.exports = {
                 });
         })
     },
+    getSectionsByClassID: function(classID, professorid) {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT DISTINCT section FROM class WHERE classid = '${classID}' AND professorid = '${professorid}';
+            `).then(res => {
+                    resolve(res.rows);
+                })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        })
+    },
+    addAssignment: function(classid, semester, section, dateopen, dateclose) {
+        return new Promise((resolve, reject) => {
+            pool.query(`INSERT INTO assignment (classid, semester, section, dateopen, dateclose) VALUES ('${classid}', '${semester}', '${section}',  to_date('${dateopen}', 'YYYY-MM-DD'), to_date('${dateclose}', 'YYYY-MM-DD'));`).then(res => {
+                    resolve(true);
+                })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        })
+    }
+
+
+//     {
+//   classid: 'IS 112',
+//   semester: '20232',
+//   section: 'G10',
+//   dateopen: '2024-04-03',
+//   dateclose: '2024-04-10'
+// }
+
+
+
+
     // findUserByEmail: function(email){
 
     // }
@@ -188,3 +224,12 @@ module.exports = {
     //         });
     // }
 }
+
+
+/**
+1. for all classIDs matching this one, get the unique section ids from class table
+2. insert 
+
+
+
+ */
