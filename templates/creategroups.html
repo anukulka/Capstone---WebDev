@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-  <title>Schedule Peer Evaluation</title>
+  <title>Create Groups - Admin</title>
   <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css?family=Raleway:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800&amp;display=swap">
@@ -12,80 +12,143 @@
   <link rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/css/theme.bootstrap_4.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
-  <script>
-    const url = new URL(window.location.href);
-    const classid = url.searchParams.get('classid');
-  </script>
+  <style>
+    .dropdown-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding-top: 60px;
+    }
+
+    .dropdown {
+      display: flex;
+      align-items: center;
+      margin-right: 20px;
+    }
+
+    .dropdown p {
+      margin-right: 10px;
+    }
+
+    .group-students-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    .group-students-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-right: 20px;
+    }
+
+    .group-students-item p {
+      margin-bottom: 10px;
+    }
+  </style>
 </head>
 
 <body>
   <script>
-    var selectedCourses = []
+    var curAdminID = ""
+    var selectedClass = ""
+    var selectedSection = ""
+
     fetch('/isAuthorized').then(res => res.json()).then(data => {
       if (!data.authorized) {
         window.location = '/'
       }
     });
-    
-    fetch('/getCurProfessor').then(res => res.json()).then(data => {
-      getSectionList(classid, data.record.professorid);
+
+
+    fetch('/getCurAdmin').then(res => res.json()).then(data => {
+      curAdminID = data.record.administratorid
+      fetchClasses()
     });
 
-    function onCourseSelect(e) {
-      const selectedSection = e.target.value;
-      const sectionIndex = selectedCourses.indexOf(selectedSection);
-
-      if (sectionIndex === -1) {
-        // Section not already selected
-        console.log("Course selected:", selectedSection);
-        e.target.style.backgroundColor = "#626484";
-        selectedCourses.push(selectedSection);
-      } else {
-        // Section is currently selected
-        console.log("Course deselected:", selectedSection);
-        e.target.style.backgroundColor = "#24285b";
-        selectedCourses.splice(sectionIndex, 1);
-      }
-    }
-
-    function getSectionList(classid, professorid) {
-      fetch('/getSections', {
+    function fetchClasses() {
+      fetch('/getClasses', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ classid: classid, professorid: professorid })
+        body: JSON.stringify({ administratorid: curAdminID })
+      }).then(res => res.json()).then(data => {
+        const classes = data.classes
+        console.log(classes)
+        const container = document.getElementById("class-container");
+        container.innerHTML = ""
+        classes.map((element, index) => {
+          if (index === 0) {
+            selectedClass = element.classid
+            getSectionsForClass(element.classid)
+          }
+          var newElement = document.createElement('option');
+          newElement.className = "dropdown-item grade-option";
+          newElement.value = element.classid;
+          newElement.textContent = element.classid;
+          container.appendChild(newElement);
+        });
+      })
+        .catch(error => {
+          alert('Error fetching classes:', error);
+        });
+
+
+    }
+
+    function onClassChange(e) {
+      selectedClass = e.target.value
+      getSectionsForClass(e.target.value)
+    }
+
+    function getSectionsForClass(selectedClass) {
+      fetch('/getSectionsByClass', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ classid: selectedClass })
       }).then(res => res.json()).then(data => {
         const sections = data.sections
-        const container = document.getElementById("course-options");
-        sections.map((item, index) => {
-          var newElement = document.createElement('button')
-          newElement.style = "margin: 0px;margin-right: 100px;"
-          newElement.className = "btn btn-primary"
-          newElement.innerText = item.section
-          newElement.value = item.section
-          newElement.id = item.section
-          newElement.addEventListener('click', onCourseSelect)
-          container.appendChild(newElement)
-        })
+        console.log(sections)
+        const container = document.getElementById("section-container");
+        container.innerHTML = ""
+        sections.map((element, index) => {
+          if (index === 0) {
+            selectedSection = element.section
+          }
+          var newElement = document.createElement('option');
+          newElement.className = "dropdown-item grade-option";
+          newElement.value = element.section;
+          newElement.textContent = element.section;
+          container.appendChild(newElement);
+        });
+
       })
+        .catch(error => {
+          alert('Error fetching sections:', error);
+        });
+
     }
 
-    function onSubmit() {
-      console.log("Submitted")
-      console.log(document.getElementById("open-date").value)
-      selectedCourses.map((item, index) => {
-        fetch('/addAssignment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ classid: classid, semester: "20232", section: item, dateopen: new Date(document.getElementById("open-date").value), dateclose: new Date(document.getElementById("close-date").value) })
-        })
-      })
-      window.location = "/dashboard/professor"
+    function onSectionChange(e) {
+      selectedSection = e.target.value
     }
 
+    function postGroupData() {
+      fetch('/dashboard/admin/createGroups', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ classid: selectedClass, semester: 20232, section: selectedSection, numGroups: document.getElementById('numGroups').value, numPerGroup: document.getElementById('numPerGroup').value })
+      })
+
+      window.location = '/dashboard/admin'
+    }
   </script>
   <nav class="navbar navbar-expand-md fixed-top navbar-shrink py-3 navbar-light" id="mainNav"
     style="--bs-primary: #10145d;--bs-primary-rgb: 16,20,93;">
@@ -98,49 +161,63 @@
           <li class="nav-item"></li>
           <li class="nav-item"></li>
           <li class="nav-item"></li>
-        </ul>
-        <ul class="navbar-nav mx-auto"></ul><a class="btn btn-primary shadow" role="button" href="/dashboard/professor"
+        </ul><a class="btn btn-primary shadow" role="button" href="/dashboard/admin"
           style="background: var(--bs-yellow);color: var(--bs-navbar-active-color);">Dashboard</a><a
           class="btn btn-primary shadow" role="button" href="/signout">Sign out</a>
       </div>
     </div>
   </nav>
-  <section class="py-5 mt-5"></section>
-  <h1 style="text-align: center;margin: 53px;" id="class-id"> </h1>
-  <section class="py-5" style="margin: -41px;">
-    <div class="container">
-      <h3 style="text-align: center;margin: 53px;">Select Sections:</h3>
-      <div class="btn-toolbar">
-        <div class="btn-group" role="group" id="course-options">
-
+  <form></form>
+  <section class="py-5 mt-5">
+    <div class="container py-4 py-xl-5">
+      <div class="row gy-4 gy-md-0">
+        <div
+          class="col-md-6 offset-xl-3 text-center text-md-start d-flex d-sm-flex d-md-flex justify-content-center align-items-center justify-content-md-start align-items-md-center justify-content-xl-center"
+          style="margin-left: 284px;">
+          <div style="max-width: 350px;"></div>
+        </div>
+        <div class="col-md-6">
+          <div></div>
         </div>
       </div>
-      <div style="height: 48px;"></div>
-    </div>
-    <div class="container" style="height: 111px;padding: 20px;">
-      <div class="table-responsive">
-        <table class="table">
-          <thead>
-            <tr>
-              <th style="border-style: none;width: 272.906px;">Open Evaluation<br><span
-                  style="font-weight: normal !important;">(Becomes visible to students)</span></th>
-              <th style="border-style: none;text-align: left;"><input type="date" id="open-date"
-                  style="text-align: center;"></th>
-              <th style="border-style: none;width: 172.141px;">Close Evaluation<br><span
-                  style="font-weight: normal !important;">(Assigns Due Date)</span></th>
-              <th style="border-style: none;text-align: center;"><input type="date" id="close-date"
-                  style="text-align: center;"></th>
-            </tr>
-          </thead>
-          <tbody style="border-style: none;"></tbody>
-        </table>
+      <h1 class="display-6 fw-bold mb-4"
+        style="margin-left: -19px;text-align: center;padding-top: 113px;margin-top: -58px;">Create Student Groups</h1>
+      <div class="dropdown-container">
+        <div class="dropdown">
+          <p>Class ID:</p>
+          <select class="btn btn-primary dropdown-toggle" id="class-container" aria-expanded="false"
+            data-bs-toggle="dropdown">
+            <!-- Class ID options -->
+          </select>
+        </div>
+        <div class="dropdown">
+          <p>Section Number:</p>
+          <select class="btn btn-primary dropdown-toggle" id="section-container" aria-expanded="false"
+            data-bs-toggle="dropdown">
+            <!-- Section Number options -->
+          </select>
+        </div>
       </div>
     </div>
-    <div style="height: 154px;margin: 0px;"></div>
-    <div class="container" style="text-align: center;height: 40.5938px;"><button class="btn btn-primary" type="button"
-        id="submit-button" style="text-align: center;">Submit</button></div>
-    <footer></footer>
-    <div class="container py-4 py-lg-5" style="text-align: left;">
+  </section>
+  <section>
+    <div class="container">
+      <div class="group-students-container">
+        <div class="group-students-item">
+          <p>Number of Groups</p> <input type="number" id="numGroups">
+        </div>
+        <div class="group-students-item">
+          <p>Students per Group</p> <input type="number" id="numPerGroup">
+        </div>
+      </div>
+    </div>
+    <div class="container py-4 py-lg-5" style="margin-top: -117px;">
+      <div style="margin-bottom: 191px;"></div>
+    </div>
+  </section>
+  <footer>
+    <div class="container py-4 py-lg-5" style="margin-top: -117px;"><button class="btn btn-primary" type="button"
+        id="submit-button" style="margin-left: 740px;">Create</button>
       <hr>
       <div class="text-muted d-flex justify-content-between align-items-center pt-3">
         <p class="mb-0">SMU<br><br>81 Victoria St, Singapore 188065<br>+65 6828 0100</p>
@@ -179,14 +256,13 @@
         </ul>
       </div>
     </div>
-  </section>
+  </footer>
   <script>
-    document.getElementById("class-id").innerHTML = `<strong>Schedule a</strong>&nbsp;<strong>New Peer
-      Evaluation</strong><br><strong>for ${classid}</strong>`
-    document.getElementById("submit-button").addEventListener('click', onSubmit)
-
+    document.getElementById('submit-button').addEventListener('click', postGroupData)
+    document.getElementById('class-container').addEventListener('change', onClassChange)
+    document.getElementById('section-container').addEventListener('change', onSectionChange)
   </script>
-  <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+  <script src="/assets/bootstrap/js/bootstrap.min.js"></script>
   <script src="https://cdn.datatables.net/1.10.15/js/dataTables.bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/jquery.tablesorter.js"></script>
   <script
@@ -195,7 +271,7 @@
     src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/widgets/widget-storage.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/js/script.min.js"></script>
+  <script src="/assets/js/script.min.js"></script>
 </body>
 
 </html>

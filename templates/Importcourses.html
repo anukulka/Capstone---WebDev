@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-  <title>Schedule Peer Evaluation</title>
+  <title>Import Courses - Admin</title>
   <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css?family=Raleway:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800&amp;display=swap">
@@ -12,135 +12,192 @@
   <link rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/css/theme.bootstrap_4.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
-  <script>
-    const url = new URL(window.location.href);
-    const classid = url.searchParams.get('classid');
-  </script>
+  <style>
+    .centered-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .content-wrapper {
+      max-width: 800px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .file-input-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    .file-input-wrapper input[type="file"] {
+      margin-right: 10px;
+    }
+  </style>
 </head>
 
 <body>
   <script>
-    var selectedCourses = []
+    var curAdminID = ""
+    var selectedSemester = ""
+
     fetch('/isAuthorized').then(res => res.json()).then(data => {
       if (!data.authorized) {
         window.location = '/'
       }
     });
     
-    fetch('/getCurProfessor').then(res => res.json()).then(data => {
-      getSectionList(classid, data.record.professorid);
+    fetch('/getCurAdmin').then(res => res.json()).then(data => {
+      curAdminID = data.record.administratorid
+      fetchSemesters()
     });
 
-    function onCourseSelect(e) {
-      const selectedSection = e.target.value;
-      const sectionIndex = selectedCourses.indexOf(selectedSection);
-
-      if (sectionIndex === -1) {
-        // Section not already selected
-        console.log("Course selected:", selectedSection);
-        e.target.style.backgroundColor = "#626484";
-        selectedCourses.push(selectedSection);
-      } else {
-        // Section is currently selected
-        console.log("Course deselected:", selectedSection);
-        e.target.style.backgroundColor = "#24285b";
-        selectedCourses.splice(sectionIndex, 1);
-      }
-    }
-
-    function getSectionList(classid, professorid) {
-      fetch('/getSections', {
+    function fetchSemesters() {
+      fetch('/getSemester', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ classid: classid, professorid: professorid })
+        body: JSON.stringify({})
       }).then(res => res.json()).then(data => {
-        const sections = data.sections
-        const container = document.getElementById("course-options");
-        sections.map((item, index) => {
-          var newElement = document.createElement('button')
-          newElement.style = "margin: 0px;margin-right: 100px;"
-          newElement.className = "btn btn-primary"
-          newElement.innerText = item.section
-          newElement.value = item.section
-          newElement.id = item.section
-          newElement.addEventListener('click', onCourseSelect)
-          container.appendChild(newElement)
-        })
+        const semesters = data.semesters
+        console.log(semesters)
+        const container = document.getElementById("semester-container");
+        semesters.map((element, index) => {
+          if (index === 0) {
+            selectedSemester = element.semester
+          }
+          var newElement = document.createElement('option');
+          newElement.className = "dropdown-item grade-option";
+          newElement.value = element.semester;
+          newElement.textContent = element.semester;
+          container.appendChild(newElement);
+        });
+
       })
+        .catch(error => {
+          alert('Error fetching semesters:', error);
+        });
+
     }
 
-    function onSubmit() {
-      console.log("Submitted")
-      console.log(document.getElementById("open-date").value)
-      selectedCourses.map((item, index) => {
-        fetch('/addAssignment', {
+    function onSemesterChange(e) {
+      selectedSemester = e.target.value
+    }
+
+    function readCSV() {
+      const fileInput = document.getElementById('file-input');
+      const file = fileInput.files[0];
+
+      if (file) {
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+          const text = event.target.result;
+          const data = csvToObject(text);
+          postCSVData(data)
+        };
+        reader.readAsText(file);
+      } else {
+        alert('Please select a CSV file first.');
+      }
+    }
+
+    function csvToObject(csvString) {
+      const lines = csvString.split('\n').map(line => line.trim()).filter(line => line);
+      const result = [];
+      const headers = lines[0].split(',').map(header => header.trim());
+
+      for (let i = 1; i < lines.length; i++) {
+        const obj = {};
+        // Split the line with a regex to handle commas inside quotes
+        const currentline = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+
+        if (currentline) {
+          for (let j = 0; j < headers.length; j++) {
+            // Remove quotes from the data if present
+            obj[headers[j]] = currentline[j] && currentline[j].replace(/^"|"$/g, '').trim();
+          }
+          result.push(obj);
+        }
+      }
+      return result;
+    }
+
+    function postCSVData(data) {
+      console.log(data)
+      data.map((course) => {
+        fetch('/dashboard/admin/importCourses', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ classid: classid, semester: "20232", section: item, dateopen: new Date(document.getElementById("open-date").value), dateclose: new Date(document.getElementById("close-date").value) })
+          body: JSON.stringify({ classid: course.classid, semester: selectedSemester, section: course.section, department: course.department, nameofclass: course.nameofclass, professorid: course.professorid, administratorid: curAdminID })
         })
+        // .catch(error => {
+        //   alert('Error importing courses:', error);
+        // });
       })
-      window.location = "/dashboard/professor"
+
+      window.location = '/dashboard/admin'
     }
 
+
+
   </script>
+
   <nav class="navbar navbar-expand-md fixed-top navbar-shrink py-3 navbar-light" id="mainNav"
     style="--bs-primary: #10145d;--bs-primary-rgb: 16,20,93;">
-    <div class="container"><a class="navbar-brand d-flex align-items-center" href="/"><span><img
-            src="/assets/img/clipboard-image-1.png" style="height: 100px;"></span></a><button data-bs-toggle="collapse"
-        class="navbar-toggler" data-bs-target="#navcol-1"><span class="visually-hidden">Toggle navigation</span><span
-          class="navbar-toggler-icon"></span></button>
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="/">
+        <span><img src="/assets/img/clipboard-image-1.png" style="height: 100px;"></span>
+      </a>
+      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navcol-1">
+        <span class="visually-hidden">Toggle navigation</span>
+        <span class="navbar-toggler-icon"></span>
+      </button>
       <div class="collapse navbar-collapse" id="navcol-1">
         <ul class="navbar-nav mx-auto">
           <li class="nav-item"></li>
           <li class="nav-item"></li>
           <li class="nav-item"></li>
         </ul>
-        <ul class="navbar-nav mx-auto"></ul><a class="btn btn-primary shadow" role="button" href="/dashboard/professor"
-          style="background: var(--bs-yellow);color: var(--bs-navbar-active-color);">Dashboard</a><a
-          class="btn btn-primary shadow" role="button" href="/signout">Sign out</a>
+        <a class="btn btn-primary shadow" role="button" href="/dashboard/admin"
+          style="background: var(--bs-yellow);color: var(--bs-navbar-active-color);">Dashboard</a>
+        <a class="btn btn-primary shadow" role="button" href=/signout>Sign out</a>
       </div>
     </div>
   </nav>
-  <section class="py-5 mt-5"></section>
-  <h1 style="text-align: center;margin: 53px;" id="class-id"> </h1>
-  <section class="py-5" style="margin: -41px;">
-    <div class="container">
-      <h3 style="text-align: center;margin: 53px;">Select Sections:</h3>
-      <div class="btn-toolbar">
-        <div class="btn-group" role="group" id="course-options">
 
-        </div>
+  <div class="centered-container">
+    <div class="content-wrapper">
+      <h1 class="display-6 fw-bold mb-4">Import Courses</h1>
+      <div class="dropdown">
+        <p>Semester</p>
+        <select class="btn btn-primary dropdown-toggle" id="semester-container" aria-expanded="false"
+          data-bs-toggle="dropdown">
+
+        </select>
       </div>
-      <div style="height: 48px;"></div>
-    </div>
-    <div class="container" style="height: 111px;padding: 20px;">
-      <div class="table-responsive">
-        <table class="table">
-          <thead>
-            <tr>
-              <th style="border-style: none;width: 272.906px;">Open Evaluation<br><span
-                  style="font-weight: normal !important;">(Becomes visible to students)</span></th>
-              <th style="border-style: none;text-align: left;"><input type="date" id="open-date"
-                  style="text-align: center;"></th>
-              <th style="border-style: none;width: 172.141px;">Close Evaluation<br><span
-                  style="font-weight: normal !important;">(Assigns Due Date)</span></th>
-              <th style="border-style: none;text-align: center;"><input type="date" id="close-date"
-                  style="text-align: center;"></th>
-            </tr>
-          </thead>
-          <tbody style="border-style: none;"></tbody>
-        </table>
+      <div class="file-input-wrapper">
+        <mark>
+          <input type="file" accept=".csv" id="file-input">
+          <p>CSV Files only (.csv)</p>
+        </mark>
+      </div>
+      <div class="button-wrapper">
+        <button class="btn btn-primary" type="button" id="import-btn">Import</button>
       </div>
     </div>
-    <div style="height: 154px;margin: 0px;"></div>
-    <div class="container" style="text-align: center;height: 40.5938px;"><button class="btn btn-primary" type="button"
-        id="submit-button" style="text-align: center;">Submit</button></div>
-    <footer></footer>
-    <div class="container py-4 py-lg-5" style="text-align: left;">
+    <u><strong><a href="https://drive.google.com/file/d/1htX7-62DuF8y1L_3pz9-Unf9suN_Pp6K/view?usp=drive_link"
+          target="_blank"> Click to view a sample csv file:</a></u></strong>
+  </div>
+
+  <footer>
+    <div class="container py-4 py-lg-5" style="margin-top: -117px;">
       <hr>
       <div class="text-muted d-flex justify-content-between align-items-center pt-3">
         <p class="mb-0">SMU<br><br>81 Victoria St, Singapore 188065<br>+65 6828 0100</p>
@@ -179,14 +236,12 @@
         </ul>
       </div>
     </div>
-  </section>
+  </footer>
   <script>
-    document.getElementById("class-id").innerHTML = `<strong>Schedule a</strong>&nbsp;<strong>New Peer
-      Evaluation</strong><br><strong>for ${classid}</strong>`
-    document.getElementById("submit-button").addEventListener('click', onSubmit)
-
+    document.getElementById('import-btn').addEventListener('click', readCSV)
+    document.getElementById('semester-container').addEventListener('change', onSemesterChange)
   </script>
-  <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+  <script src="/assets/bootstrap/js/bootstrap.min.js"></script>
   <script src="https://cdn.datatables.net/1.10.15/js/dataTables.bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/jquery.tablesorter.js"></script>
   <script
@@ -195,7 +250,7 @@
     src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/widgets/widget-storage.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/js/script.min.js"></script>
+  <script src="/assets/js/script.min.js"></script>
 </body>
 
 </html>

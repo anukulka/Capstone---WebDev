@@ -31,6 +31,14 @@ router.get('/dashboard/student/peerEval', (req, res) => {
   res.sendFile(path.join(__dirname, 'templates', 'Peereval.html'));
 })
 
+router.get('/dashboard/student/insights', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'studentInsights.html'));
+})
+
+router.get('/dashboard/student/viewGroups', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'viewStudentGroups.html'));
+})
+
 // -------------- PROFESSOR DASHBOARD -------------------------
 
 router.get('/dashboard/professor', (req, res) => {
@@ -46,8 +54,89 @@ router.get('/dashboard/professor/view', (req, res) => {
 })
 
 router.get('/dashboard/professor/insights', (req, res) => {
-  res.sendFile(path.join(__dirname, 'templates', 'Professor Dashboard.html'));
+  res.sendFile(path.join(__dirname, 'templates', 'profInsights.html'));
 })
+
+// -------------- ADMIN DASHBOARD -------------------------
+
+router.get('/dashboard/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'Admin Dashboard.html'));
+})
+
+router.get('/dashboard/admin/importCourses', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'importcourses.html'));
+})
+
+router.get('/dashboard/admin/importStudents', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'importstudents.html'));
+})
+
+router.get('/dashboard/admin/createGroups', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'creategroups.html'));
+})
+
+router.get('/dashboard/admin/viewGroups', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'viewgroups.html'));
+})
+router.get('/dashboard/admin/adminInsights', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'adminInsights.html'));
+})
+
+router.post('/dashboard/admin/importCourses', (req, res) => {
+  db.addCourse(req.body.classid, req.body.semester, req.body.section, req.body.department, req.body.nameofclass, req.body.professorid, req.body.administratorid).then(result => {
+    res.send(result)
+  })
+})
+
+router.post('/dashboard/admin/createGroups', (req, res) => {
+  console.log(req.body)
+  if (req.body.classid && req.body.section && req.body.numGroups && req.body.numPerGroup) {
+    studentQuery = db.getStudentByClassSectionIDs(req.body.classid, req.body.section).then(studentList => {
+      groupMatches = {}
+      tempList = []
+
+      studentList.map(item => {
+        tempList.push(item['studentid'])
+      })
+      studentList = tempList
+
+      console.log(studentList)
+
+      for (let groupNum = 1; groupNum <= req.body.numGroups; groupNum++) {
+        selectedStudents = []
+
+        if (req.body.numPerGroup > studentList.length) {
+          selectedStudents = studentList
+        }
+
+        else {
+          for (let i = 0; i < req.body.numPerGroup; i++) {
+            let index = pickStudent(studentList.length)
+            console.log(index)
+            let randomStudent = studentList[index]
+            console.log(randomStudent)
+            selectedStudents.push(randomStudent)
+          }
+        }
+        groupMatches[groupNum] = selectedStudents
+      }
+      console.log(groupMatches)
+      Object.entries(groupMatches).forEach(([group, students]) => {
+        students.forEach(studentid => {
+          db.updateStudentGroup(req.body.classid, req.body.semester, req.body.section, studentid, group)
+        })
+      })
+    })
+  }
+  else (
+    res.status(404)
+  )
+})
+
+function pickStudent(totalStudents) {
+  return parseInt(Math.floor(Math.random() * totalStudents))
+}
+
 
 router.post('/validateLogin', (req, res) => {
   if (req.body.type === 'student') {
@@ -61,7 +150,7 @@ router.post('/validateLogin', (req, res) => {
         res.redirect('/')
     })
   }
-  else {
+  else if (req.body.type === 'professor') {
     var test = db.validateProfessor(req.body.email, req.body.password).then(isValid => {
       if (isValid) {
         req.session.isAuthorized = true
@@ -72,12 +161,24 @@ router.post('/validateLogin', (req, res) => {
         res.redirect('/')
     })
   }
+  else {
+    var test = db.validateAdmin(req.body.email, req.body.password).then(isValid => {
+      if (isValid) {
+        req.session.isAuthorized = true
+        req.session.email = req.body.email
+        res.redirect('/dashboard/admin')
+      }
+      else
+        res.redirect('/adminlogin')
+    })
+  }
 })
+
+
 
 router.post('/addAssignment', (req, res) => {
   console.log(req.body)
   db.addAssignment(req.body.classid, req.body.semester, req.body.section, req.body.dateopen, req.body.dateclose).then(result => {
-
   })
 })
 
@@ -89,6 +190,12 @@ router.get('/getCurStudent', (req, res) => {
 
 router.get('/getCurProfessor', (req, res) => {
   db.findProfessorByEmail(req.session.email).then(result => {
+    res.json({ record: result })
+  })
+})
+
+router.get('/getCurAdmin', (req, res) => {
+  db.findAdminByEmail(req.session.email).then(result => {
     res.json({ record: result })
   })
 })
@@ -106,6 +213,25 @@ router.post('/getGroup', (req, res) => {
 router.post('/getSections', (req, res) => {
   db.getSectionsByClassID(req.body.classid, req.body.professorid).then(result => {
     res.json({ sections: result })
+  })
+})
+
+// HERE
+router.post('/getSectionsByClass', (req, res) => {
+  db.getSectionsByClass(req.body.classid).then(result => {
+    res.json({ sections: result })
+  })
+})
+
+router.post('/getClasses', (req, res) => {
+  db.getClassesByAdmin(req.body.administratorid).then(result => {
+    res.json({ classes: result })
+  })
+})
+
+router.post('/getSemester', (req, res) => {
+  db.getSemester().then(result => {
+    res.json({ semesters: result })
   })
 })
 
@@ -166,11 +292,11 @@ router.post('/dashboard/submitEval', (req, res) => {
   }
 
   var categoryAvg = {
-    "multidisciplinaryknowledge" : 0,
-    "intellectualandknowledge" : 0,
-    "interpersonalskills" : 0,
-    "globalcitizenship" : 0,
-    "personalmastery" : 0,
+    "multidisciplinaryknowledge": 0,
+    "intellectualandknowledge": 0,
+    "interpersonalskills": 0,
+    "globalcitizenship": 0,
+    "personalmastery": 0,
   }
 
   var overallSum = 0
@@ -180,17 +306,17 @@ router.post('/dashboard/submitEval', (req, res) => {
     categoryAvg[category] += value
   });
 
-  var overallAvg =  Number(Math.round((overallSum/(Object.entries(ratings).length)) * 10) / 10).toFixed(2)   
-  categoryAvg["multidisciplinaryknowledge"] = Number(Math.round((categoryAvg["multidisciplinaryknowledge"]/2) * 10) / 10).toFixed(2)
-  categoryAvg["intellectualandknowledge"] = Number(Math.round((categoryAvg["intellectualandknowledge"]/4) * 10) / 10).toFixed(2)   
-  categoryAvg["interpersonalskills"] = Number(Math.round((categoryAvg["interpersonalskills"]/4) * 10) / 10).toFixed(2)   
-  categoryAvg["globalcitizenship"] = Number(Math.round((categoryAvg["globalcitizenship"]/6) * 10) / 10).toFixed(2)   
-  categoryAvg["personalmastery"] = Number(Math.round((categoryAvg["personalmastery"]/3) * 10) / 10).toFixed(2)   
+  var overallAvg = Number(Math.round((overallSum / (Object.entries(ratings).length)) * 10) / 10).toFixed(2)
+  categoryAvg["multidisciplinaryknowledge"] = Number(Math.round((categoryAvg["multidisciplinaryknowledge"] / 2) * 10) / 10).toFixed(2)
+  categoryAvg["intellectualandknowledge"] = Number(Math.round((categoryAvg["intellectualandknowledge"] / 4) * 10) / 10).toFixed(2)
+  categoryAvg["interpersonalskills"] = Number(Math.round((categoryAvg["interpersonalskills"] / 4) * 10) / 10).toFixed(2)
+  categoryAvg["globalcitizenship"] = Number(Math.round((categoryAvg["globalcitizenship"] / 6) * 10) / 10).toFixed(2)
+  categoryAvg["personalmastery"] = Number(Math.round((categoryAvg["personalmastery"] / 3) * 10) / 10).toFixed(2)
 
   db.addEval(studentID, assignmentID, peerStudentID, overallAvg, ratings).then(newRecordID => {
-      db.addGlo(newRecordID, categoryAvg).then(done => {
-       //res.redirect('/dashboard/student')
-       })
+    db.addGlo(newRecordID, categoryAvg).then(done => {
+      //res.redirect('/dashboard/student')
+    })
   })
 })
 
@@ -209,62 +335,26 @@ router.get('/forgotten-password', (req, res) => {
   res.sendFile(path.join(__dirname, 'templates', 'forgotten-password.html'));
 });
 
-/*----------------------------------------------------------------------------------------
+// -------------- Adminstrator DASHBOARD -------------------------
 
-router.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
-
-  try {
-    // Check if the user exists in the database
-    const user = await db.findUserByEmail(email);
-
-    if (!user) {
-      return res.status(404).send('User not found');
-    }
-
-    // Generate a unique password reset token
-    const resetToken = crypto.randomBytes(20).toString('hex');
-
-    // Store the reset token and expiration time in the database
-    await db.storeResetToken(user.id, resetToken, Date.now() + 3600000); // Token expires in 1 hour
-
-    // Create a transporter for sending the email
-    const transporter = nodemailer.createTransport({
-      // Configure your email service provider (e.g., Gmail, SendGrid, etc.)
-      service: 'Gmail',
-      auth: {
-        user: 'your-email@gmail.com',
-        pass: 'your-email-password',
-      },
-    });
-
-    // Compose the email message
-    const mailOptions = {
-      from: 'your-email@gmail.com',
-      to: email,
-      subject: 'Password Reset',
-      text: `You are receiving this email because you (or someone else) have requested a password reset for your account.\n\n
-        Please click on the following link, or paste it into your browser to complete the process:\n\n
-        http://${req.headers.host}/reset-password/${resetToken}\n\n
-        If you did not request this, please ignore this email and your password will remain unchanged.\n`,
-    };
-
-    // Send the email
-    await transporter.sendMail(mailOptions);
-
-    res.status(200).send('Password reset email sent');
-  } catch (error) {
-    console.error('Error sending password reset email:', error);
-    res.status(500).send('Internal server error');
-  }
-});
+router.get('/adminlogin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'adminlogin.html'));
+})
 
 
+router.post('/dashboard/admin/addStudent', (req, res) => {
+  console.log(req.body)
+  db.addStudent(req.body.studentid, req.body.firstname, req.body.lastname, req.body.email, req.body.password, req.body.dateofenrollment, req.body.yearofstudy).then(result => {
+    res.send(result)
+  })
+})
 
-*/
-
-
-
+router.post('/dashboard/admin/addGroup', (req, res) => {
+  console.log(req.body)
+  db.addStudentInClass(req.body.classid, req.body.semester, req.body.section, req.body.studentid, req.body.studentgroup).then(result => {
+    res.send(result)
+  })
+})
 
 app.listen(port, () => {
   console.log(`App listening on port ${port}`)

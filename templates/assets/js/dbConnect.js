@@ -43,6 +43,20 @@ module.exports = {
                 });
         });
     },
+
+    validateAdmin: function (email, password) {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT COUNT(*) FROM administrator WHERE email = '${email}' AND password = '${password}';`)
+                .then(res => {
+                    resolve(parseInt(res.rows[0].count) == 1);
+                })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        });
+    },
+
     findStudentByEmail: function (email) {
         return new Promise((resolve, reject) => {
             pool.query(`SELECT * FROM student WHERE email = '${email}';`)
@@ -59,6 +73,19 @@ module.exports = {
     findProfessorByEmail: function (email) {
         return new Promise((resolve, reject) => {
             pool.query(`SELECT * FROM professor WHERE email = '${email}';`)
+                .then(res => {
+                    resolve(res.rows[0]);
+                })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        });
+    },
+
+    findAdminByEmail: function (email) {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT * FROM administrator WHERE email = '${email}';`)
                 .then(res => {
                     resolve(res.rows[0]);
                 })
@@ -99,7 +126,8 @@ module.exports = {
                 });
         });
     },
-    
+
+
     getGroup: function (studentid, classid) {
         return new Promise((resolve, reject) => {
             pool.query(`SELECT *
@@ -135,101 +163,157 @@ module.exports = {
 
     },
 
-    addEval: function (studentid, assignmentid, receivingstudentid, overall, otherfields)  {
+    addEval: function (studentid, assignmentid, receivingstudentid, overall, otherfields) {
         var date = new Date()
         return new Promise((resolve, reject) => {
             pool.query(`INSERT INTO PeerEvaluation (AssignmentID, StudentID, ReceivingStudentID, DateCompleted, DisciplineKnowledge, ApplyKnowledge, ReasoningAndLogic, ProblemSolving, CriticalThinking, IdentifyOpportunity, EmotionalIntelligence, Collaboration, Leadership, Communication, Openness, DiversityAppreciation, asiaissues, Ethics, SenseOfResponsibility, AddressSocialConcern, PersonalGrowth, SelfReflection, Resilience, Overall) 
             VALUES (${assignmentid}, ${studentid}, ${receivingstudentid}, to_date('${date.toISOString()}', 'YYYY-MM-DD'), ${otherfields.field1}, ${otherfields.field2}, ${otherfields.field3}, ${otherfields.field4}, ${otherfields.field5}, ${otherfields.field6}, ${otherfields.field7}, ${otherfields.field8}, ${otherfields.field9}, ${otherfields.field10}, ${otherfields.field11}, ${otherfields.field12}, ${otherfields.field13}, ${otherfields.field14}, ${otherfields.field15}, ${otherfields.field16}, ${otherfields.field17}, ${otherfields.field18}, ${otherfields.field19}, ${overall})
             RETURNING peerevaluationid;
             `).then(res => {
-                    resolve(res.rows[0].peerevaluationid);
-                })
+                resolve(res.rows[0].peerevaluationid);
+            })
                 .catch(err => {
                     console.log(err);
                     reject(err);
                 });
         }) //(DEFAULT, 1, 701234568, 701561205, NOW()::date, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4)
-        
+
     },
 
-    addGlo: function (peerevaluationid, categoryAvg)  {
+
+    addGlo: function (peerevaluationid, categoryAvg) {
         return new Promise((resolve, reject) => {
             pool.query(`INSERT INTO graduatelearningoutcomes (peerevaluationid, multidisciplinaryknowledge, intellectualandcreative, interpersonalskills, globalcitizenship, personalmastery) 
             VALUES (${peerevaluationid}, ${categoryAvg["multidisciplinaryknowledge"]}, ${categoryAvg["intellectualandknowledge"]}, ${categoryAvg["interpersonalskills"]}, ${categoryAvg["globalcitizenship"]}, ${categoryAvg["personalmastery"]});
             `).then(res => {
-                    resolve(true);
-                })
+                resolve(true);
+            })
                 .catch(err => {
                     console.log(err);
                     reject(err);
                 });
         })
     },
-    getSectionsByClassID: function(classID, professorid) {
+    getSectionsByClassID: function (classID, professorid) {
         return new Promise((resolve, reject) => {
             pool.query(`SELECT DISTINCT section FROM class WHERE classid = '${classID}' AND professorid = '${professorid}';
             `).then(res => {
-                    resolve(res.rows);
-                })
+                resolve(res.rows);
+            })
                 .catch(err => {
                     console.log(err);
                     reject(err);
                 });
         })
     },
-    addAssignment: function(classid, semester, section, dateopen, dateclose) {
+    getSemester: function () {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT DISTINCT semester FROM class;
+            `).then(res => {
+                resolve(res.rows);
+            })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        })
+    },
+
+
+    getStudentByClassSectionIDs: function (classID, section) {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT DISTINCT studentid FROM student_class WHERE classid = '${classID}' AND section = '${section}';`).then(res => {
+                resolve(res.rows);
+            }).catch(err => {
+                console.log(err);
+                reject(err);
+            });
+
+        })
+    },
+
+    addAssignment: function (classid, semester, section, dateopen, dateclose) {
         return new Promise((resolve, reject) => {
             pool.query(`INSERT INTO assignment (classid, semester, section, dateopen, dateclose) VALUES ('${classid}', '${semester}', '${section}',  to_date('${dateopen}', 'YYYY-MM-DD'), to_date('${dateclose}', 'YYYY-MM-DD'));`).then(res => {
+                resolve(true);
+            })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        })
+    },
+    addCourse: function (classid, semester, section, department, nameofclass, professorid, administratorid) {
+        return new Promise((resolve, reject) => {
+            pool.query(`INSERT INTO class (classid, semester, section, department, nameofclass, professorid, administratorid) VALUES ('${classid}', '${semester}', '${section}',  '${department}', '${nameofclass}', ${parseInt(professorid)}, ${parseInt(administratorid)});`).then(res => {
+                resolve(true);
+            })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        })
+    },
+    addStudent: function (studentid, firstname, lastname, email, password, dateofenrollment, yearofstudy) {
+        return new Promise((resolve, reject) => {
+            pool.query(`INSERT INTO student (studentid, firstname, lastname, email, password, dateofenrollment, yearofstudy) VALUES (${parseInt(studentid)}, '${firstname}', '${lastname}',  '${email}', '${password}', to_date('${dateofenrollment}', 'YYYY-MM-DD'), ${parseInt(yearofstudy)});`).then(res => {
+                resolve(true);
+            })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        })
+    },
+
+    addStudentInClass: function (classid, semester, section, studentid, studentgroup) {
+        return new Promise((resolve, reject) => {
+            pool.query(`INSERT INTO student_class (classid, semester, section, studentid, currentlyenrolled) VALUES ('${classid}', '${semester}', '${section}',  ${parseInt(studentid)}, ${true});`).then(res => {
+                resolve(true);
+            })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        })
+    },
+
+    updateStudentGroup: function (classid, semester, section, studentid, groupnum) {
+        return new Promise((resolve, reject) => {
+            pool.query(`UPDATE student_class SET studentgroup = COALESCE($1, studentgroup) WHERE classid = $2 AND semester = $3 AND section = $4 AND studentid = $5;`, [groupnum, classid, semester, section, studentid])
+                .then(res => {
                     resolve(true);
                 })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        });
+    },
+
+
+    getClassesByAdmin: function (administratorid) {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT DISTINCT classid FROM class where administratorid = ${parseInt(administratorid)};
+            `).then(res => {
+                resolve(res.rows);
+            })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        })
+    },
+    getSectionsByClass: function (classid) {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT DISTINCT section FROM class where classid = '${classid}' ;
+            `).then(res => {
+                resolve(res.rows);
+            })
                 .catch(err => {
                     console.log(err);
                     reject(err);
                 });
         })
     }
-
-
-//     {
-//   classid: 'IS 112',
-//   semester: '20232',
-//   section: 'G10',
-//   dateopen: '2024-04-03',
-//   dateclose: '2024-04-10'
-// }
-
-
-
-
-    // findUserByEmail: function(email){
-
-    // }
-    // forgotPassword: function (req, res) {
-    //     const { email } = req.body;
-
-    //     db.findUserByEmail(email)
-    //         .then(user => {
-    //             if (user) {
-    //                 const resetToken = crypto.randomBytes(20).toString('hex');
-
-    //                 return db.storeResetToken(user.id, resetToken, Date.now() + 3600000)
-    //                     .then(() => sendPasswordResetEmail(email, resetToken));
-    //             }
-
-    //             res.status(200).send('If the email exists, a password reset email has been sent.');
-    //         })
-    //         .catch(error => {
-    //             console.error('Error sending password reset email:', error);
-    //             res.status(500).send('Internal server error');
-    //         });
-    // }
 }
-
-
-/**
-1. for all classIDs matching this one, get the unique section ids from class table
-2. insert 
-
-
-
- */
