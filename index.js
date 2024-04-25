@@ -64,7 +64,7 @@ router.get('/dashboard/admin', (req, res) => {
 })
 
 router.get('/dashboard/admin/importCourses', (req, res) => {
-  res.sendFile(path.join(__dirname, 'templates', 'importcourses.html'));
+  res.sendFile(path.join(__dirname, 'templates', 'Importcourses.html'));
 })
 
 router.get('/dashboard/admin/importStudents', (req, res) => {
