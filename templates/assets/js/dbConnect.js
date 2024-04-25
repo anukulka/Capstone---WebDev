@@ -126,8 +126,19 @@ module.exports = {
                 });
         });
     },
+    getAssignmentsForProf: function (professorid, classid) {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT * FROM assignment WHERE classid = '${classid}' AND section IN (SELECT section FROM class WHERE professorid = ${parseInt(professorid)} AND classid = '${classid}');`)
+                .then(res => {
+                    resolve(res.rows);
+                })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        });
 
-
+    },
     getGroup: function (studentid, classid) {
         return new Promise((resolve, reject) => {
             pool.query(`SELECT *
@@ -149,6 +160,25 @@ module.exports = {
                 });
         });
     },
+    getGroupInfo: function (studentid) {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT *
+                        FROM student_class
+                        WHERE studentid = '${studentid}';`)
+                .then(res => {
+                    resolve(res.rows);
+                })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        });
+    },
+
+
+
+
+
     getAssignments: function (classid) {
         return new Promise((resolve, reject) => {
             pool.query(`SELECT * FROM assignment WHERE classid = '${classid}';`)
@@ -194,10 +224,17 @@ module.exports = {
                 });
         })
     },
+
     getSectionsByClassID: function (classID, professorid) {
+        let queryString = ""
+        if (professorid)
+            queryString = `SELECT DISTINCT section FROM class WHERE classid = '${classID}' AND professorid = '${professorid}';`
+        else
+            queryString = `SELECT classid, section, studentgroup FROM student_class WHERE classid = '${classID}';`
+
+
         return new Promise((resolve, reject) => {
-            pool.query(`SELECT DISTINCT section FROM class WHERE classid = '${classID}' AND professorid = '${professorid}';
-            `).then(res => {
+            pool.query(queryString).then(res => {
                 resolve(res.rows);
             })
                 .catch(err => {
@@ -219,6 +256,17 @@ module.exports = {
         })
     },
 
+    getAdminGroupMembers: function (classid, section, groupNum) {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT *, ${parseInt(groupNum)} as groupnum FROM student WHERE studentid IN (SELECT studentid FROM student_class WHERE classid = '${classid}' AND section = '${section}' AND studentgroup = ${parseInt(groupNum)});`)
+                .then(res => {
+                    resolve(res.rows);
+                }).catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        })
+    },
 
     getStudentByClassSectionIDs: function (classID, section) {
         return new Promise((resolve, reject) => {
@@ -315,5 +363,31 @@ module.exports = {
                     reject(err);
                 });
         })
-    }
+    },
+
+
+    getAdminGroups: function (groupnumbers) {
+        return new Promise((resolve, reject) => {
+            pool.query(`SELECT c.classid, c.section, sc.studentgroup, s.firstname, s.lastname
+            FROM class c
+            JOIN student_class sc ON c.classid = sc.classid AND c.section = sc.section
+            JOIN student s ON sc.studentid = s.studentid
+            WHERE c.classid = '${classid}' AND c.professorid = '${administratorid}'
+            ORDER BY c.classid, c.section, sc.studentgroup, s.firstname, s.lastname;
+             ;
+            `).then(res => {
+                resolve(res.rows);
+            })
+                .catch(err => {
+                    console.log(err);
+                    reject(err);
+                });
+        })
+    },
+
+
+
+
+
+
 }

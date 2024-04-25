@@ -49,8 +49,8 @@ router.get('/dashboard/professor/schedule', (req, res) => {
   res.sendFile(path.join(__dirname, 'templates', 'Schedule.html'));
 })
 
-router.get('/dashboard/professor/view', (req, res) => {
-  res.sendFile(path.join(__dirname, 'templates', 'Professor Dashboard.html'));
+router.get('/dashboard/professor/viewEvals', (req, res) => {
+  res.sendFile(path.join(__dirname, 'templates', 'viewProfEvals.html'));
 })
 
 router.get('/dashboard/professor/insights', (req, res) => {
@@ -89,7 +89,6 @@ router.post('/dashboard/admin/importCourses', (req, res) => {
 })
 
 router.post('/dashboard/admin/createGroups', (req, res) => {
-  console.log(req.body)
   if (req.body.classid && req.body.section && req.body.numGroups && req.body.numPerGroup) {
     studentQuery = db.getStudentByClassSectionIDs(req.body.classid, req.body.section).then(studentList => {
       groupMatches = {}
@@ -99,8 +98,6 @@ router.post('/dashboard/admin/createGroups', (req, res) => {
         tempList.push(item['studentid'])
       })
       studentList = tempList
-
-      console.log(studentList)
 
       for (let groupNum = 1; groupNum <= req.body.numGroups; groupNum++) {
         selectedStudents = []
@@ -112,15 +109,14 @@ router.post('/dashboard/admin/createGroups', (req, res) => {
         else {
           for (let i = 0; i < req.body.numPerGroup; i++) {
             let index = pickStudent(studentList.length)
-            console.log(index)
             let randomStudent = studentList[index]
-            console.log(randomStudent)
+            studentList.splice(index, 1)
             selectedStudents.push(randomStudent)
           }
         }
         groupMatches[groupNum] = selectedStudents
       }
-      console.log(groupMatches)
+
       Object.entries(groupMatches).forEach(([group, students]) => {
         students.forEach(studentid => {
           db.updateStudentGroup(req.body.classid, req.body.semester, req.body.section, studentid, group)
@@ -136,6 +132,106 @@ router.post('/dashboard/admin/createGroups', (req, res) => {
 function pickStudent(totalStudents) {
   return parseInt(Math.floor(Math.random() * totalStudents))
 }
+
+
+router.post('/getStudentGroups', (req, res) => {
+  console.log(req.body);
+  db.getGroupInfo(req.body.studentid).then(allGroups => {
+    const classids = allGroups.map(group => group.classid);
+    console.log(classids);
+
+    const teammatesPromises = classids.map(id => {
+      return db.getGroup(req.body.studentid, id).then(groupMembers => {
+        console.log(groupMembers);
+        return { id, groupMembers };
+      });
+    });
+
+    Promise.all(teammatesPromises).then(teammatesData => {
+      const teammates = {};
+      teammatesData.forEach(data => {
+        teammates[data.id] = data.groupMembers;
+      });
+
+      const result = { groups: allGroups, members: teammates };
+      console.log(result);
+      res.send(result);
+    });
+  });
+});
+
+router.post('/getAdminGroups', (req, res) => {
+  console.log(req.body);
+  db.getSectionsByClassID(req.body.classid).then(studentClassData => {
+    const teammatesPromises = studentClassData.map(sectionEntry => {
+      return db.getAdminGroupMembers(sectionEntry.classid, sectionEntry.section, sectionEntry.studentgroup).then(groupMembers => {
+        let sectionID = sectionEntry.section;
+        return { sectionID, groupMembers };
+      });
+    });
+
+    Promise.all(teammatesPromises).then(teammatesData => {
+      const teammates = {};
+      teammatesData.forEach(data => {
+        if (!teammates[data.sectionID]) {
+          teammates[data.sectionID] = {};
+        }
+
+        data.groupMembers.forEach(member => {
+          let groupNum = member.groupnum.toString();
+          if (!teammates[data.sectionID][groupNum]) {
+            teammates[data.sectionID][groupNum] = new Set();
+          }
+          teammates[data.sectionID][groupNum].add(member.firstname);
+        });
+      });
+
+      // Convert Sets to Arrays and prepare the final object
+      const uniqueTeammates = {};
+      Object.keys(teammates).forEach(section => {
+        uniqueTeammates[section] = {};
+        Object.keys(teammates[section]).forEach(groupNum => {
+          uniqueTeammates[section][groupNum] = [...teammates[section][groupNum]]; // Convert Set to Array
+        });
+      });
+
+      const result = { groups: studentClassData, members: uniqueTeammates };
+      console.log(JSON.stringify(result, null, 2)); // Use JSON.stringify to ensure full content is displayed
+      res.send(result);
+    });
+  });
+
+});
+
+
+
+
+
+// {
+//   section: {
+//     groupnum: [student list],
+//       group2: [students]
+//   },
+//   section: {
+//     groupnum: [student list]
+//   },
+//   section: {
+//     groupnum: [student list]
+//   }
+// }
+
+
+
+// Promise.all(teammatesPromises).then(teammatesData => {
+//   const teammates = {};
+//   teammatesData.forEach(data => {
+//     teammates[data.sectionID] = data.groupMembers;
+//   });
+
+//   const result = { groups: studentClassData, members: teammates };
+//   console.log(result);
+//   res.send(result);
+// });
 
 
 router.post('/validateLogin', (req, res) => {
@@ -238,6 +334,12 @@ router.post('/getSemester', (req, res) => {
 router.post('/getAssignments', (req, res) => {
   db.getAssignments(req.body.classid).then(result => {
     res.json({ assignments: result })
+  })
+})
+
+router.post('/getProfAssignments', (req, res) => {
+  db.getAssignmentsForProf(req.body.professorid, req.body.classid).then(result => {
+    res.json({ evaluations: result })
   })
 })
 
