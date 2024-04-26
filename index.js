@@ -89,7 +89,9 @@ router.post('/dashboard/admin/importCourses', (req, res) => {
 })
 
 router.post('/dashboard/admin/createGroups', (req, res) => {
+  console.log(req.body)
   if (req.body.classid && req.body.section && req.body.numGroups && req.body.numPerGroup) {
+
     studentQuery = db.getStudentByClassSectionIDs(req.body.classid, req.body.section).then(studentList => {
       groupMatches = {}
       tempList = []
@@ -453,7 +455,7 @@ router.post('/dashboard/admin/addStudent', (req, res) => {
 
 router.post('/dashboard/admin/addGroup', (req, res) => {
   console.log(req.body)
-  db.addStudentInClass(req.body.classid, req.body.semester, req.body.section, req.body.studentid, req.body.studentgroup).then(result => {
+  db.addStudentInClass(req.body.classid, req.body.semester, req.body.section, req.body.studentid).then(result => {
     res.send(result)
   })
 })

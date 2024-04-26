@@ -137,12 +137,12 @@
           },
           body: JSON.stringify({ classid: course.classid, semester: selectedSemester, section: course.section, department: course.department, nameofclass: course.nameofclass, professorid: course.professorid, administratorid: curAdminID })
         })
-        // .catch(error => {
-        //   alert('Error importing courses:', error);
-        // });
+      //   .catch(error => {
+      //     alert('Error importing courses:', error);
+      //   });
       })
 
-      window.location = '/dashboard/admin'
+      window.location = '/dashboard/admin';
     }
 
 

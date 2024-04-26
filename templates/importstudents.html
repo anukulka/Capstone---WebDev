@@ -187,35 +187,47 @@
       return result;
     }
 
-    function postCSVData(data) {
-      console.log(data)
-      data.map((course) => {
-        fetch('/dashboard/admin/addStudent', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ studentid: course.studentid, firstname: course.firstname, lastname: course.lastname, email: course.email, password: course.password, dateofenrollment: course.dateofenrollment, yearofstudy: course.yearofstudy })
-        })
-          .catch(error => {
-            alert('Error importing courses:', error);
+    async function postCSVData(data) {
+      console.log(data);
+      for (const course of data) {
+        try {
+          await fetch('/dashboard/admin/addStudent', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              studentid: course.studentid,
+              firstname: course.firstname,
+              lastname: course.lastname,
+              email: course.email,
+              password: course.password,
+              dateofenrollment: course.dateofenrollment,
+              yearofstudy: course.yearofstudy
+            })
           });
 
-        fetch('/dashboard/admin/addGroup', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ classid: selectedClass, semester: 20232, section: selectedSection, studentid: course.studentid, currentlyenrolled: true })
+          await fetch('/dashboard/admin/addGroup', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              classid: selectedClass,
+              semester: 20232,
+              section: selectedSection,
+              studentid: course.studentid,
+              currentlyenrolled: true
+            })
+          });
+        } catch (error) {
+          alert('Error importing data:', error);
+        }
+      }
 
-        })
-          .catch(error => {
-            alert('Error importing groups')
-          })
-      })
-
-      window.location = '/dashboard/admin'
+      window.location = '/dashboard/admin';
     }
+
 
 
 

@@ -293,7 +293,7 @@ module.exports = {
     },
     addCourse: function (classid, semester, section, department, nameofclass, professorid, administratorid) {
         return new Promise((resolve, reject) => {
-            pool.query(`INSERT INTO class (classid, semester, section, department, nameofclass, professorid, administratorid) VALUES ('${classid}', '${semester}', '${section}',  '${department}', '${nameofclass}', ${parseInt(professorid)}, ${parseInt(administratorid)});`).then(res => {
+            pool.query(`INSERT INTO class (classid, semester, section, department, nameofclass, professorid, administratorid) VALUES ('${classid}', '${semester}', '${section}',  '${department}', '${nameofclass}', ${parseInt(professorid)}, ${parseInt(administratorid)}) ON CONFLICT (classid, semester, section) DO NOTHING;`).then(res => {
                 resolve(true);
             })
                 .catch(err => {
@@ -302,6 +302,7 @@ module.exports = {
                 });
         })
     },
+
     addStudent: function (studentid, firstname, lastname, email, password, dateofenrollment, yearofstudy) {
         return new Promise((resolve, reject) => {
             pool.query(`INSERT INTO student (studentid, firstname, lastname, email, password, dateofenrollment, yearofstudy) VALUES (${parseInt(studentid)}, '${firstname}', '${lastname}',  '${email}', '${password}', to_date('${dateofenrollment}', 'YYYY-MM-DD'), ${parseInt(yearofstudy)});`).then(res => {
@@ -314,9 +315,9 @@ module.exports = {
         })
     },
 
-    addStudentInClass: function (classid, semester, section, studentid, studentgroup) {
+    addStudentInClass: function (classid, semester, section, studentid) {
         return new Promise((resolve, reject) => {
-            pool.query(`INSERT INTO student_class (classid, semester, section, studentid, currentlyenrolled) VALUES ('${classid}', '${semester}', '${section}',  ${parseInt(studentid)}, ${true});`).then(res => {
+            pool.query(`INSERT INTO student_class (classid, semester, section, studentid, studentgroup, currentlyenrolled) VALUES ('${classid}', '${semester}', '${section}',  ${parseInt(studentid)}, ${-1}, ${true});`).then(res => {
                 resolve(true);
             })
                 .catch(err => {
